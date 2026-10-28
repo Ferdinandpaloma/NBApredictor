@@ -569,7 +569,7 @@ Promise.all([
 
 // ==================== TEAM PICKS ====================
 // The team Elo model: win probability and spread for every game this week, and the ratings.
-const TEAMS = { preds:null, ratings:null, meta:null, err:"" };
+const TEAMS = { preds:null, ratings:null, meta:null, results:null, err:"", team:"", all:false };
 // Primary and secondary colors (ESPN). A bar uses the primary unless it would vanish on the
 // page background or clash with the opponent's, then the secondary.
 const TEAM_COLORS = { ATL:["#c8102e", "#fdb927"], BKN:["#000000", "#ffffff"], BOS:["#008348", "#ffffff"], CHA:["#008ca8", "#1d1060"],
@@ -599,8 +599,9 @@ function renderTeams() {
   const el = $("tab-teams");
   if (!TEAMS.preds && !TEAMS.err) {
     el.innerHTML = `<p class="note">Loading…</p>`;
-    Promise.all(["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })))
-      .then(([p, r, m]) => { Object.assign(TEAMS, { preds:p, ratings:r, meta:m }); })
+    Promise.all([...["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })),
+                 fetch("team_results.json").then(r => r.ok ? r.json() : null).catch(() => null)])
+      .then(([p, r, m, res]) => { Object.assign(TEAMS, { preds:p, ratings:r, meta:m, results:res }); })
       .catch(e => { TEAMS.err = `Couldn't load the team picks (${e.message}).`; })
       .then(() => { if (S.tab === "teams") renderTeams(); });
     return;
@@ -627,8 +628,49 @@ function renderTeams() {
           <td><span class="rbar"><i style="width:${8 + (t.elo - low) / (top - low || 1) * 92}%;background:${teamColor(t.team)}"></i></span></td>
           <td class="proj">${Math.round(t.elo)}</td></tr>`).join("")}</table></div>
     </div>
+    ${pastPicks()}
     <p class="note">Updated ${new Date(TEAMS.meta.built_at).toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}. The spread is the Elo-implied margin; it doesn't know about injuries or rest.</p>
   </div>`;
+  if ($("tteam")) $("tteam").onchange = e => { TEAMS.team = e.target.value; TEAMS.all = false; renderTeams(); };
+  if ($("tall")) $("tall").onclick = () => { TEAMS.all = !TEAMS.all; renderTeams(); };
+}
+
+// The model's pick for each finished game this season, made before the game from earlier results only.
+function pastPicks() {
+  const R = TEAMS.results;
+  if (!R) return "";
+  const rec = R.record, last = R.last_season, f = TEAMS.team;
+  const games = R.games.filter(g => !f || g.home === f || g.away === f);
+  const mine = f ? { n:games.length, correct:games.filter(g => g.correct).length } : null;
+  const shown = TEAMS.all ? games : games.slice(0, 25);
+  const conf = rec.by_conf.filter(b => b.n);
+  const sure = conf.filter(b => b.lo >= .7), sureN = sure.reduce((a, b) => a + b.n, 0), sureC = sure.reduce((a, b) => a + b.correct, 0);
+  const side = (g, t) => `<span class="${g.winner === t ? "pname" : "muted"}">${logo(t)}${t} ${t === g.home ? g.home_pts : g.away_pts}</span>`;
+  return `<div><h3 class="sub">How the picks did<small>${esc(R.season)} · ${rec.n} games</small></h3>
+    <div class="scoreline">
+      <div class="fact"><div class="k">This season</div><div class="v">${rec.n ? `${rec.correct}–${rec.n - rec.correct}` : "–"}</div><div class="s">${rec.n ? `right ${pct(rec.hit)} · model expected ${pct(rec.avg_p)}` : "first results after opening night"}</div></div>
+      ${sureN ? `<div class="fact"><div class="k">Confident picks</div><div class="v">${sureC}–${sureN - sureC}</div><div class="s">right ${pct(sureC / sureN)} when the model said 70%+</div></div>` : ""}
+      ${last ? `<div class="fact"><div class="k">Last season</div><div class="v">${pct(last.hit, 1)}</div><div class="s">${esc(last.season)} · ${last.n.toLocaleString()} games</div></div>` : ""}
+      ${mine ? `<div class="fact"><div class="k">${esc(f)} games</div><div class="v">${mine.n ? `${mine.correct}–${mine.n - mine.correct}` : "–"}</div><div class="s">picks right–wrong</div></div>` : ""}
+    </div>
+    ${conf.length ? `<div class="scroll" style="margin-top:12px"><table class="agate">
+      <tr><th>Model said</th><th>Games</th><th>Right</th><th>Hit rate</th><th>Expected</th></tr>
+      ${conf.map(b => `<tr><td>${pct(b.lo)}–${pct(b.hi)}</td><td>${b.n}</td><td>${b.correct}</td><td class="proj">${pct(b.hit)}</td><td class="muted">${pct(b.avg_p)}</td></tr>`).join("")}
+    </table></div><p class="note">Early in a season these swing a lot: with this few games, a couple of upsets move the hit rate by several points.</p>` : ""}
+    <div class="controls">
+      <div class="field" style="min-width:220px"><label>Team</label><select id="tteam"><option value="">All teams</option>
+        ${Object.entries(TEAM_NAMES).map(([c, n]) => `<option value="${c}" ${c === f ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
+    </div>
+    ${games.length ? `<div class="scroll"><table class="agate results">
+      <tr><th>Date</th><th>Game</th><th>Model picked</th><th>Result</th></tr>
+      ${shown.map(g => `<tr><td class="muted">${new Date(g.date + "T12:00:00").toLocaleDateString(undefined, { month:"short", day:"numeric" })}</td>
+        <td>${side(g, g.away)} <span class="muted">@</span> ${side(g, g.home)}</td>
+        <td>${logo(g.pick)}<b>${g.pick}</b> <span class="muted">${pct(g.p)}</span></td>
+        <td><span class="st ${g.correct ? "won" : "lost"}">${g.correct ? "Right" : "Wrong"}</span></td></tr>`).join("")}
+    </table></div>
+    ${games.length > 25 ? `<button class="more" id="tall" type="button">${TEAMS.all ? "Show fewer" : `Show all ${games.length}`}</button>` : ""}`
+      : `<p class="note">No finished games${f ? ` for ${esc(TEAM_NAMES[f] || f)}` : ""} yet this season.</p>`}
+    <p class="note">Each pick comes from the ratings the model had before that game, using only earlier results, the same way it picks upcoming games.</p></div>`;
 }
 
 // ==================== NEWS ====================

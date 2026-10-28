@@ -7,6 +7,7 @@ Writes:
     site/predictions.json   upcoming games with win probabilities
     site/ratings.json       current Elo ratings, sorted
     site/meta.json          build time + backtest metrics
+    site/team_results.json  the model's pick for each finished game this season, and its record
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from nbaelo.data import fetch_schedule, load_history, merge, now_iso, parse_schedule  # noqa: E402
-from nbaelo.elo import EloModel, backtest  # noqa: E402
+from nbaelo.elo import EloModel, backtest, past_picks, pick_record  # noqa: E402
 
 HISTORY = ROOT / "data" / "history.csv"
 SITE = ROOT / "site"
@@ -68,6 +69,19 @@ def main() -> None:
     write_json(args.out / "predictions.json", preds)
     write_json(args.out / "ratings.json", ratings)
     write_json(args.out / "meta.json", meta)
+
+    # How the picks did: every finished game this season (and last season's record).
+    seasons = sorted({g.season for g in games} | {season})
+    last = seasons[-2] if len(seasons) > 1 else None
+    picks = past_picks(games, {season, last} - {None})
+    cur = [p for p in picks if p["season"] == season]
+    prev = [p for p in picks if p["season"] == last]
+    write_json(args.out / "team_results.json", {
+        "built_at": now_iso(), "season": season,
+        "record": pick_record(cur), "games": cur[::-1],  # newest first
+        "last_season": {"season": last, **pick_record(prev)} if prev else None,
+    })
+    print(f"team picks this season: {sum(p['correct'] for p in cur)}/{len(cur)} correct")
     print(f"wrote {len(preds)} predictions; backtest: {meta['backtest']}")
 
 

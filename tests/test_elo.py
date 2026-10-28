@@ -123,3 +123,21 @@ class ScheduleTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PastPicksTests(unittest.TestCase):
+    def test_picks_use_only_earlier_games(self):
+        from nbaelo.elo import past_picks, pick_record
+        gs = [Game("1", "2025-11-01", "2025-26", "AAA", "BBB", 120, 90),
+              Game("2", "2025-11-03", "2025-26", "BBB", "AAA", 100, 110),
+              Game("3", "2025-11-05", "2025-26", "AAA", "BBB", 95, 101)]
+        picks = past_picks(gs, {"2025-26"})
+        self.assertEqual(len(picks), 3)
+        self.assertEqual(picks[0]["pick"], "AAA")             # even teams: home court decides
+        self.assertAlmostEqual(picks[0]["p"], win_prob(MEAN, MEAN), places=4)
+        self.assertEqual(picks[1]["pick"], "BBB")             # still favored at home...
+        self.assertLess(picks[1]["p"], picks[0]["p"])         # ...but less so after losing by 30
+        self.assertEqual([p["correct"] for p in picks], [True, False, False])
+        rec = pick_record(picks)
+        self.assertEqual((rec["n"], rec["correct"]), (3, 1))
+        self.assertEqual(past_picks(gs, {"2024-25"}), [])

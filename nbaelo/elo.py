@@ -87,6 +87,44 @@ class EloModel:
         return p
 
 
+def past_picks(games: list[Game], seasons: set[str]) -> list[dict]:
+    """The model's pick for every finished game in `seasons`, made from the ratings it had
+    going into that game (only earlier results), with how it turned out."""
+    model = EloModel()
+    out = []
+    for g in sorted(games, key=lambda x: (x.date, x.game_id)):
+        if not g.is_final:
+            continue
+        model._new_season(g.season)
+        pre = model.predict(g)
+        model.update(g)
+        if g.season not in seasons:
+            continue
+        home_pick = pre["home_win_prob"] >= 0.5
+        winner = g.home if g.home_pts > g.away_pts else g.away
+        out.append({
+            "game_id": g.game_id, "date": g.date, "season": g.season, "home": g.home, "away": g.away,
+            "home_pts": g.home_pts, "away_pts": g.away_pts, "home_spread": pre["home_spread"],
+            "pick": g.home if home_pick else g.away,
+            "p": round(pre["home_win_prob"] if home_pick else pre["away_win_prob"], 4),
+            "winner": winner, "correct": (g.home if home_pick else g.away) == winner,
+        })
+    return out
+
+
+BUCKETS = [(0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 1.01)]
+
+
+def pick_record(picks: list[dict]) -> dict:
+    """Hit rate overall and by how confident the pick was."""
+    def block(xs):
+        n, c = len(xs), sum(x["correct"] for x in xs)
+        return {"n": n, "correct": c, "hit": round(c / n, 4) if n else None,
+                "avg_p": round(sum(x["p"] for x in xs) / n, 4) if n else None}
+    return {**block(picks),
+            "by_conf": [{"lo": lo, "hi": min(hi, 1.0), **block([x for x in picks if lo <= x["p"] < hi])} for lo, hi in BUCKETS]}
+
+
 def backtest(games: list[Game], skip_first_season: bool = True) -> dict:
     """Replay games in order, scoring each pre-game prediction.
 

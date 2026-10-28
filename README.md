@@ -83,6 +83,10 @@ The **News** tab shows ESPN's NBA headlines, injury report and transactions, rea
 
 The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Projections don't yet raise teammates' minutes when someone sits.
 
+## Team picks record
+
+The **Team Picks** tab also shows how the Elo picks did: every finished game this season with the model's pick, its confidence and whether it was right, plus hit rate by confidence and last season's record. `scripts/build.py` writes these to `site/team_results.json` by replaying the season (`past_picks` in `nbaelo/elo.py`), so each pick uses only the ratings the model had before that game.
+
 ## Team logos
 
 `site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js`. The logos are the teams' trademarks, shown here only to identify them.
