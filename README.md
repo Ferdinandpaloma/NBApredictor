@@ -52,6 +52,22 @@ python -m scripts.build_props --backtest         # also writes site/props_backte
 
 The backtest walks forward (train on earlier seasons, predict the next) and compares the model's average miss against season average, last-10 and recent form. It also checks that P(over) is calibrated. Results are on the page's "Model accuracy" tab. Single-game stats are noisy, so treat the probabilities as an edge finder, not a sure thing.
 
+## Daily updates
+
+cdn.nba.com blocks GitHub's runners (403), and stats.nba.com blocks cloud IPs, so the data is refreshed from a Mac instead. `scripts/daily.sh` pulls the current season from stats.nba.com, runs both builds, commits and pushes; Vercel redeploys on the push. A launchd job runs it at 9:00 every morning (or on wake if the Mac was asleep):
+
+```bash
+# install (already done on the main machine)
+cp scripts/com.nbapredictor.daily.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nbapredictor.daily.plist
+
+launchctl kickstart gui/$(id -u)/com.nbapredictor.daily   # run it now
+tail -f ~/Library/Logs/nba-predictor.log                   # watch it
+launchctl bootout gui/$(id -u)/com.nbapredictor.daily     # turn it off
+```
+
+The GitHub Action still runs but its build steps fail softly, so it just republishes the last committed data.
+
 ## Tests
 
 ```bash
