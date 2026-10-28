@@ -77,6 +77,10 @@ Each morning the build (`nbaelo/picks.py`) publishes up to 10 over/unders for th
 
 The line for each pick is the half point where recent form alone is closest to 50/50 (a stand-in for a book line), and only markets a book would plausibly post count, so trivial picks like "under 0.5 threes" for a center are excluded. Because real sportsbook lines are sharper than recent form, the tracker measures accuracy, not profit; use My Bets with real odds for that.
 
+## Team logos
+
+`site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js` and `web/index.html`. The logos are the teams' trademarks, shown here only to identify them.
+
 ## Accounts (Firebase)
 
 Sign in with Google or email/password, save bets from the Line Desk, and the **My Bets** tab grades them against the box scores once games are final (record, units, ROI, and the model's predicted hit rate vs the real one). Code: `web/src/account.js` (Firebase), `web/src/grade.js` (grading). Without a config the site works normally and the sign-in button explains it isn't set up.

@@ -11,7 +11,11 @@
 <title>NBA Elo Picks</title>
 <style>
   :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --bar:#2563eb; --bar2:#d6d3d1; }
+  .logo { width:1.3em; height:1.3em; object-fit:contain; vertical-align:-.3em; margin-right:.3em; }
+  .logo.d { display:none; }
   @media (prefers-color-scheme: dark) {
+    .logo.has-d { display:none; } .logo.d { display:inline; }
+    .logo { filter:drop-shadow(0 0 1px rgba(255,255,255,.55)); }
     :root { --bg:#0c0a09; --fg:#f5f5f4; --muted:#a8a29e; --line:#292524; --bar:#60a5fa; --bar2:#44403c; }
   }
   * { box-sizing: border-box; }
@@ -42,6 +46,10 @@
 </main>
 <script>
 const pct = p => Math.round(p * 100) + "%";
+const DARK_LOGOS = new Set(["OKC", "PHI", "TOR", "UTA"]);
+const logo = t => DARK_LOGOS.has(t)
+  ? `<img class="logo has-d" src="logos/${t}.png" alt=""><img class="logo d" src="logos/dark/${t}.png" alt="">`
+  : `<img class="logo" src="logos/${t}.png" alt="">`;
 const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
 
 Promise.all(["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(r => r.json())))
@@ -61,7 +69,7 @@ Promise.all(["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(
         const fav = g.home_spread <= 0 ? g.home : g.away;
         out.insertAdjacentHTML("beforeend", `
           <div class="game">
-            <div class="row"><strong>${g.away} @ ${g.home}</strong><span>${fav} −${Math.abs(g.home_spread)}</span></div>
+            <div class="row"><strong>${logo(g.away)}${g.away} @ ${logo(g.home)}${g.home}</strong><span>${fav} −${Math.abs(g.home_spread)}</span></div>
             <div class="bar"><span style="width:${g.away_win_prob * 100}%"></span></div>
             <div class="row small"><span>${g.away} ${pct(g.away_win_prob)}</span><span>${g.home} ${pct(g.home_win_prob)}</span></div>
           </div>`);
@@ -69,7 +77,7 @@ Promise.all(["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(
     });
 
     document.getElementById("ratings").innerHTML = ratings
-      .map((t, i) => `<tr><td>${i + 1}. ${t.team}</td><td>${Math.round(t.elo)}</td></tr>`).join("");
+      .map((t, i) => `<tr><td>${i + 1}. ${logo(t.team)}${t.team}</td><td>${Math.round(t.elo)}</td></tr>`).join("");
   })
   .catch(e => { document.getElementById("meta").textContent = "Couldn't load predictions: " + e; });
 </script>

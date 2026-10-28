@@ -7,6 +7,11 @@ const pct = (p, d = 0) => p == null ? "–" : (p * 100).toFixed(d) + "%";
 const SHORT = { pts:"PTS", reb:"REB", ast:"AST", pra:"PRA", pr:"P+R", pa:"P+A", ra:"R+A", fg3m:"3PM",
   stl:"STL", blk:"BLK", stocks:"S+B", tov:"TOV", fgm:"FGM", fga:"FGA", ftm:"FTM", fta:"FTA",
   oreb:"OREB", dreb:"DREB", min:"MIN" };
+// Team logos live in site/logos (scripts/fetch_logos.sh); four teams have a separate dark-mode version.
+const DARK_LOGOS = new Set(["OKC", "PHI", "TOR", "UTA"]);
+const logo = t => !/^[A-Z]{3}$/.test(t || "") ? "" : DARK_LOGOS.has(t)
+  ? `<img class="logo has-d" src="logos/${t}.png" alt="" loading="lazy"><img class="logo d" src="logos/dark/${t}.png" alt="" loading="lazy">`
+  : `<img class="logo" src="logos/${t}.png" alt="" loading="lazy">`;
 const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
                  more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
 let P, BT, PK = null, INDEX = [];
@@ -194,7 +199,7 @@ function renderSlate() {
     let ps = P.players.filter(p => p.game_id === g.game_id && p.team === code);
     if (!S.showOut) ps = ps.filter(p => !p.likely_out);
     ps.sort((a, b) => a.likely_out - b.likely_out || b.proj.min[0] - a.proj.min[0]);
-    return `<div><h3 class="sub">${code}<small>${code === g.home ? "Home" : "Away"} · ${ps.length} players</small></h3>
+    return `<div><h3 class="sub"><span>${logo(code)} ${code}</span><small>${code === g.home ? "Home" : "Away"} · ${ps.length} players</small></h3>
       <div class="scroll"><table class="agate stack"><tr><th>Player</th><th>Min</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>
       ${ps.map(p => `<tr class="click ${p.likely_out ? "dim" : ""}" data-pid="${p.id}">
         <td><span class="pname">${esc(p.name)}</span>${p.likely_out ? '<span class="tag out">Likely out</span>' : ""}</td>
@@ -209,12 +214,12 @@ function renderSlate() {
       <p class="deck">Projections for every rotation player. ▲▼ shows how the projection compares with the player's last 10 games. Tap a player to price a line.</p></div>
     <div class="slate" id="slate">${P.games.map(x => `<button class="ticket ${x.game_id === g.game_id ? "on" : ""}" data-g="${x.game_id}">
         <div class="day">${shortDay(x.date)}${x.tip ? " · " + tipTime(x.tip) : ""}</div>
-        <div class="match">${x.away}<em>@</em>${x.home}</div>
+        <div class="match"><span>${logo(x.away)}${x.away}</span><em>@</em><span>${logo(x.home)}${x.home}</span></div>
         <div class="line">${x.home_spread == null ? "&nbsp;" : "Elo: " + (x.home_spread <= 0 ? `${x.home} −${Math.abs(x.home_spread)}` : `${x.away} −${x.home_spread}`)}</div>
       </button>`).join("")}</div>
     <div class="gamehead">
       <div><p class="kicker">${dayLabel(g.date)}${g.tip ? " · " + tipTime(g.tip) : ""}</p>
-        <h2 class="head">${g.away} at ${g.home}</h2>
+        <h2 class="head">${logo(g.away)} ${g.away} at ${logo(g.home)} ${g.home}</h2>
         <p class="note" style="margin:6px 0 0">${longDate(g.date)}${fav ? ` · Elo favorite: ${fav}` : ""}</p></div>
       <div class="controls" style="margin:0">
         <div class="seg" id="groups">${Object.keys(GROUPS).map(k => `<button data-k="${k}" class="${k === S.group ? "on" : ""}">${{ main:"Main", combos:"Combos", more:"More" }[k]}</button>`).join("")}</div>
@@ -251,8 +256,8 @@ function renderBoard() {
       <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th><th><span class="sr">Parlay</span></th></tr>
       ${rows.slice(0, 80).map(r => { const lean = r.over >= r.under ? ["o", "Over", r.over] : ["u", "Under", r.under];
         return `<tr class="click" data-pid="${r.p.id}" data-line="${r.line}">
-        <td><span class="pname">${esc(r.p.name)}</span> <span class="muted">${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
-        <td class="muted">${r.p.home ? "vs" : "@"} ${r.p.opp} · ${dayLabel(r.p.date)}</td>
+        <td><span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
+        <td class="muted">${r.p.home ? "vs" : "@"} ${logo(r.p.opp)}${r.p.opp} · ${dayLabel(r.p.date)}</td>
         <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
         <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
         <td style="text-align:left"><span class="pbar" data-tip="Over ${pct(r.over, 1)} · Under ${pct(r.under, 1)}"><i style="width:${r.over * 100}%"></i></span><span class="lean ${lean[0]}">${lean[1]} ${pct(lean[2])}</span></td>
@@ -348,7 +353,7 @@ function renderSlip() {
     </div>`;
   $("slip").innerHTML = `<div class="slip">
     <div class="slip-top">
-      <div class="slip-who">${esc(p.name)} · ${p.team} ${p.home ? "vs" : "@"} ${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</div>
+      <div class="slip-who">${esc(p.name)} · ${logo(p.team)}${p.team} ${p.home ? "vs" : "@"} ${logo(p.opp)}${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</div>
       <div class="split">
         <div class="side o"><div class="lab">Over ${L}</div><div class="big">${pct(over)}</div><div class="fair">Fair odds ${american(over)}</div></div>
         <div class="side u"><div class="lab">Under ${L}</div><div class="big">${pct(under)}</div><div class="fair">Fair odds ${american(under)}${push > .001 ? ` · push ${pct(push, 1)}` : ""}</div></div>
@@ -436,8 +441,8 @@ function drawFile() {
     const shown = S.file.all ? sorted : sorted.slice(0, 25);
     box.innerHTML = `<div class="reveal">
       <div class="profile"><div><div class="nm">${esc(f.name)}</div></div>
-        <div class="tm">${esc(f.team)}<span class="muted" style="font:500 13px var(--ui);letter-spacing:.06em"> · ${f.seasons.length} seasons · ${rows.length} games</span></div></div>
-      ${nxt ? `<p class="note">Next: ${nxt.home ? "vs" : "@"} ${nxt.opp}, ${dayLabel(nxt.date)}${nxt.likely_out ? ' <span class="tag out">Likely out</span>' : ""}</p>
+        <div class="tm">${logo(f.team)} ${esc(f.team)}<span class="muted" style="font:500 13px var(--ui);letter-spacing:.06em"> · ${f.seasons.length} seasons · ${rows.length} games</span></div></div>
+      ${nxt ? `<p class="note">Next: ${nxt.home ? "vs" : "@"} ${logo(nxt.opp)}${nxt.opp}, ${dayLabel(nxt.date)}${nxt.likely_out ? ' <span class="tag out">Likely out</span>' : ""}</p>
         <div class="tiles">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<div class="fact"><div class="k">${SHORT[s]}</div><div class="v">${fmt(nxt.proj[s][0])}</div><div class="s">L10 ${fmt(nxt.l10[s])}</div></div>`).join("")}</div>` : `<p class="note">No game on the schedule this week.</p>`}
       <div>
         <h3 class="sub">Last ${recent.length} games<small><span class="seg" id="fstat">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<button data-s="${s}" class="${s === st ? "on" : ""}">${SHORT[s]}</button>`).join("")}</span></small></h3>
@@ -718,7 +723,7 @@ function renderParlay() {
   el.innerHTML = `<div class="parlay">
     <h3 class="sub" style="margin-top:4px">Parlay<small>${legs.length} leg${legs.length > 1 ? "s" : ""}</small></h3>
     <ol class="legs">${legs.map((l, i) => `<li>
-      <div><b>${esc(l.name)}</b> <span class="muted">${l.team} ${l.home ? "vs" : "@"} ${l.opp}</span><br>
+      <div><b>${esc(l.name)}</b> <span class="muted">${logo(l.team)}${l.team} ${l.home ? "vs" : "@"} ${logo(l.opp)}${l.opp}</span><br>
         ${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || l.stat} <span class="muted">· ${o(l.odds)} · model ${pct(l.modelP)}</span></div>
       <button type="button" class="link" data-i="${i}" aria-label="Remove leg">Remove</button></li>`).join("")}</ol>
     ${legs.length < 2 ? `<p class="note" style="margin:0">Add at least one more leg.</p>` : `
@@ -793,12 +798,12 @@ function renderBets() {
               <td><span class="pname">Parlay</span> <span class="muted">${b.legs.length} legs</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${g.odds !== b.odds && g.status !== "push" ? `<span class="muted">paid at ${g.odds > 0 ? "+" : "−"}${Math.abs(g.odds)}</span>` : ""}</td>${tail}`
               + b.legs.map((l, i) => `<tr class="leg"><td class="muted">${esc(l.date)}</td>
-              <td><span class="pname">${esc(l.name)}</span> <span class="muted">${esc(l.team)} ${l.home ? "vs" : "@"} ${esc(l.opp)}</span></td>
+              <td><span class="pname">${esc(l.name)}</span> <span class="muted">${logo(l.team)}${esc(l.team)} ${l.home ? "vs" : "@"} ${logo(l.opp)}${esc(l.opp)}</span></td>
               <td>${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || esc(l.stat)}</td>
               <td class="muted">${l.odds > 0 ? "+" : "−"}${Math.abs(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
               <td>${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
             return `<tr><td class="muted">${esc(b.date)}</td>
-              <td><span class="pname">${esc(b.name)}</span> <span class="muted">${esc(b.team)} ${b.home ? "vs" : "@"} ${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
+              <td><span class="pname">${esc(b.name)}</span> <span class="muted">${logo(b.team)}${esc(b.team)} ${b.home ? "vs" : "@"} ${logo(b.opp)}${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>${tail}`; }).join("")}
         </table></div>` : `<p class="deck">No bets yet. Open the <a href="#desk" id="todesk">Line Desk</a>, price a prop and tap “Save to My Bets”.</p>`}
         <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void. A parlay loses if any leg loses; a leg that pushes or is void drops out and the parlay pays on the rest.</p></div>`;
@@ -874,8 +879,8 @@ function renderPicks() {
     ${pending.length ? `<div class="scroll"><table class="agate">
       <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
       ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
-        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${esc(x.team)}</span></td>
-        <td class="muted">${x.home ? "vs" : "@"} ${esc(x.opp)} · ${dayLabel(x.date)}</td>
+        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span></td>
+        <td class="muted">${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)} · ${dayLabel(x.date)}</td>
         <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
         <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>
         <td>${fmt(x.proj)}</td><td class="muted">${fmt(x.form)}</td>
@@ -910,7 +915,7 @@ function renderPicks() {
     ${graded.length ? `<div><h3 class="sub">Results<small>${graded.length} graded</small></h3><div class="scroll"><table class="agate">
       <tr><th>Date</th><th>Player</th><th>Pick</th><th>Model</th><th>Actual</th><th>Result</th></tr>
       ${graded.slice(0, S.picksAll ? graded.length : 30).map(x => `<tr><td class="muted">${esc(x.date)}</td>
-        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${esc(x.team)} ${x.home ? "vs" : "@"} ${esc(x.opp)}</span></td>
+        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)} ${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)}</span></td>
         <td>${pickText(x)}</td><td>${pct(x.p)}</td><td><b>${x.actual === "" ? "–" : fmt(x.actual, 0)}</b></td>
         <td><span class="st ${x.result}">${x.result}</span></td></tr>`).join("")}</table></div>
       ${graded.length > 30 ? `<button class="more" id="pall">${S.picksAll ? "Show fewer" : `Show all ${graded.length}`}</button>` : ""}</div>` : ""}
