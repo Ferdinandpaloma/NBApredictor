@@ -34,9 +34,13 @@ jobs:
         run: python -m unittest discover -s tests -v
 
       - name: Build predictions
+        # NBA's feeds block some cloud IPs; keep the last committed data if so.
+        continue-on-error: true
         run: python -m scripts.build
 
       - name: Build player props
+        # NBA's feeds block some cloud IPs; keep the last committed data if so.
+        continue-on-error: true
         run: python -m scripts.build_props
 
       - name: Commit updated JSON
