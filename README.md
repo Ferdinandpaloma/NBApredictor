@@ -83,7 +83,7 @@ The line for each pick is the half point where recent form alone is closest to 5
 
 ## Player photos
 
-Headshots load in the visitor's browser straight from the NBA's image server (`cdn.nba.com/headshots/...`), keyed by the same player ids the data uses, so nothing is stored in the repo and new players appear automatically. If a photo is missing or the server refuses it, the player's initials show instead.
+Headshots load in the visitor's browser straight from the NBA's image server (`cdn.nba.com/headshots/...`), keyed by the same player ids the data uses, so nothing is stored in the repo and new players appear automatically. If a photo is missing or the server refuses it, it's left out entirely.
 
 ## Accounts (Firebase)
 

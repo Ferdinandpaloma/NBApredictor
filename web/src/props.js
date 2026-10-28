@@ -13,11 +13,10 @@ const logo = t => !/^[A-Z]{3}$/.test(t || "") ? "" : DARK_LOGOS.has(t)
   ? `<img class="logo has-d" src="logos/${t}.png" alt="" loading="lazy"><img class="logo d" src="logos/dark/${t}.png" alt="" loading="lazy">`
   : `<img class="logo" src="logos/${t}.png" alt="" loading="lazy">`;
 // Headshots load straight from the NBA's image server by player id. If one is missing,
-// or the server refuses it, the image is dropped and the player's initials show instead.
-const initials = n => String(n || "").split(/\s+/).filter(w => /^[A-Za-zÀ-ÿ]/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-const face = (id, name, size = "") => `<span class="face ${size}" data-i="${esc(initials(name))}" aria-hidden="true"><img
+// or the server refuses it, the photo is removed and nothing shows in its place.
+const face = (id, name, size = "") => `<span class="face ${size}" aria-hidden="true"><img
   src="https://cdn.nba.com/headshots/nba/latest/${size === "lg" ? "1040x760" : "260x190"}/${esc(id)}.png" alt="" loading="lazy"></span>`;
-document.addEventListener("error", e => { if (e.target.matches?.(".face img")) e.target.remove(); }, true);
+document.addEventListener("error", e => { if (e.target.matches?.(".face img")) e.target.parentNode.remove(); }, true);
 const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
                  more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
 let P, BT, PK = null, INDEX = [];
@@ -474,7 +473,7 @@ function drawFile() {
     const sorted = [...rows].sort((a, b) => (a[so.col] > b[so.col] ? 1 : a[so.col] < b[so.col] ? -1 : 0) * so.dir);
     const shown = S.file.all ? sorted : sorted.slice(0, 25);
     box.innerHTML = `<div class="reveal">
-      <div class="profile">${face(id, f.name, "lg")}<div><div class="nm">${esc(f.name)}</div></div>
+      <div class="profile"><div class="who">${face(id, f.name, "lg")}<div class="nm">${esc(f.name)}</div></div>
         <div class="tm">${logo(f.team)} ${esc(f.team)}<span class="muted" style="font:500 13px var(--ui);letter-spacing:.06em"> · ${f.seasons.length} seasons · ${rows.length} games</span></div></div>
       ${nxt ? `<p class="note">Next: ${nxt.home ? "vs" : "@"} ${logo(nxt.opp)}${nxt.opp}, ${dayLabel(nxt.date)}${nxt.likely_out ? ' <span class="tag out">Likely out</span>' : ""}</p>
         <div class="tiles">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<div class="fact"><div class="k">${SHORT[s]}</div><div class="v">${fmt(nxt.proj[s][0])}</div><div class="s">L10 ${fmt(nxt.l10[s])}</div></div>`).join("")}</div>` : `<p class="note">No game on the schedule this week.</p>`}
