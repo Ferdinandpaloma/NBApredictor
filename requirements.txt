@@ -1,4 +1,7 @@
-# Build and tests use only the Python standard library.
-# These are only needed for scripts/backfill_history.py:
+# The team Elo build and its tests use only the Python standard library.
+# The player props build (scripts/build_props.py) and backfills need these:
 nba_api>=1.4
 pandas>=2.0
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.4

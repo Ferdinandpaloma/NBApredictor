@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NBA Player Props</title>
+<style>
+  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --bar:#2563eb; --bar2:#d6d3d1;
+          --good:#15803d; --bad:#b91c1c; --chip:#f5f5f4; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0c0a09; --fg:#f5f5f4; --muted:#a8a29e; --line:#292524; --bar:#60a5fa; --bar2:#44403c;
+            --good:#4ade80; --bad:#f87171; --chip:#1c1917; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:28px 0 8px; }
+  a { color:var(--bar); text-decoration:none; }
+  .meta, .small { color:var(--muted); font-size:13px; }
+  nav { display:flex; gap:6px; margin:16px 0; flex-wrap:wrap; }
+  nav button, .chips button { font:inherit; font-size:13px; padding:6px 12px; border-radius:999px; cursor:pointer;
+         border:1px solid var(--line); background:var(--chip); color:var(--fg); }
+  nav button.on, .chips button.on { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px; }
+  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th { color:var(--muted); font-weight:500; cursor:pointer; user-select:none; }
+  th:first-child, td:first-child { text-align:left; }
+  .out { color:var(--bad); font-size:11px; margin-left:4px; }
+  .sub { color:var(--muted); font-size:11px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:3px; }
+  input, select { font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:8px;
+                  background:var(--bg); color:var(--fg); width:100%; }
+  .form { display:grid; grid-template-columns:2fr 1.4fr 1fr 1fr; gap:10px; }
+  @media (max-width:640px) { .form { grid-template-columns:1fr 1fr; } }
+  .result { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:16px; }
+  .tile { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  .tile .v { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .pos { color:var(--good); } .neg { color:var(--bad); }
+  .bar { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:10px 0 4px; background:var(--bar2); }
+  .bar span { background:var(--bar); }
+  svg text { fill:var(--muted); font-size:10px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>NBA Player Props</h1>
+  <div class="meta" id="meta">Loading…</div>
+  <div class="small"><a href="./">← Team Elo picks</a></div>
+  <nav>
+    <button data-tab="games" class="on">Next games</button>
+    <button data-tab="line">Line checker</button>
+    <button data-tab="player">Player stats</button>
+    <button data-tab="model">Model accuracy</button>
+  </nav>
+
+  <section id="tab-games">
+    <div class="chips" id="gamechips"></div>
+    <div class="chips" id="statchips"></div>
+    <div id="gametables"></div>
+  </section>
+
+  <section id="tab-line" class="hidden">
+    <div class="form">
+      <div><label>Player</label><select id="lp"></select></div>
+      <div><label>Market</label><select id="ls"></select></div>
+      <div><label>Line</label><input id="ll" type="number" step="0.5" inputmode="decimal"></div>
+      <div><label>Over odds (optional)</label><input id="lo" type="number" placeholder="-110" inputmode="numeric"></div>
+    </div>
+    <div id="lineout"></div>
+  </section>
+
+  <section id="tab-player" class="hidden">
+    <label>Search any player since 2018-19</label>
+    <input id="search" list="plist" placeholder="Type a name…" autocomplete="off">
+    <datalist id="plist"></datalist>
+    <div id="playerout"></div>
+  </section>
+
+  <section id="tab-model" class="hidden"><div id="modelout"></div></section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt = (x, d = 1) => x == null ? "–" : (+x).toFixed(d);
+const pct = p => (p * 100).toFixed(1) + "%";
+const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+const SHORT = { pts:"PTS", reb:"REB", ast:"AST", pra:"PRA", pr:"P+R", pa:"P+A", ra:"R+A", fg3m:"3PM",
+  stl:"STL", blk:"BLK", stocks:"S+B", tov:"TOV", fgm:"FGM", fga:"FGA", ftm:"FTM", fta:"FTA",
+  oreb:"OREB", dreb:"DREB", min:"MIN" };
+let P = null, BT = null, INDEX = [];
+
+// ---- distributions: negative binomial for counts, normal for minutes ----
+function erf(x) {  // Abramowitz-Stegun 7.1.26
+  const s = Math.sign(x); x = Math.abs(x);
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return s * y;
+}
+function dist(stat, mu, param) {
+  if (stat === "min") {
+    const cdf = x => 0.5 * (1 + erf((x - mu) / (param * Math.SQRT2)));
+    return { over: L => 1 - cdf(L), under: L => cdf(L), push: () => 0,
+             q: p => { let lo = 0, hi = 60; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; cdf(m) < p ? lo = m : hi = m; } return lo; } };
+  }
+  const n = 1 / param, pr = n / (n + Math.max(mu, 1e-6));
+  const pmf = [Math.exp(n * Math.log(pr))];
+  const kmax = Math.ceil(mu * 4 + 40);
+  for (let k = 0; k < kmax; k++) pmf.push(pmf[k] * (k + n) / (k + 1) * (1 - pr));
+  const cdf = [];
+  pmf.reduce((a, v, i) => (cdf[i] = a + v), 0);
+  const C = k => k < 0 ? 0 : k >= cdf.length ? 1 : cdf[k];
+  return {
+    over: L => 1 - C(Math.floor(L)),
+    under: L => C(Math.ceil(L) - 1),
+    push: L => Number.isInteger(L) ? (pmf[L] || 0) : 0,
+    q: p => { const i = cdf.findIndex(c => c >= p); return i < 0 ? kmax : i; },
+  };
+}
+const american = p => p <= 0 || p >= 1 ? "–" : p >= 0.5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
+const impliedFromAmerican = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
+
+// ---- tabs ----
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(t) {
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + t));
+}
+
+// ---- next games ----
+let curGame = null, statSet = "main";
+const STATSETS = { main: ["min","pts","reb","ast","fg3m","pra"], combos: ["pra","pr","pa","ra","stocks"],
+                   other: ["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
+function renderGames() {
+  $("gamechips").innerHTML = P.games.map(g =>
+    `<button data-g="${g.game_id}" class="${g.game_id === curGame ? "on" : ""}">${fmtDate(g.date).split(",")[0]} · ${g.away} @ ${g.home}</button>`).join("");
+  $("gamechips").querySelectorAll("button").forEach(b => b.onclick = () => { curGame = b.dataset.g; renderGames(); });
+  $("statchips").innerHTML = Object.keys(STATSETS).map(k =>
+    `<button data-s="${k}" class="${k === statSet ? "on" : ""}">${{main:"Main",combos:"Combos",other:"Other"}[k]}</button>`).join("");
+  $("statchips").querySelectorAll("button").forEach(b => b.onclick = () => { statSet = b.dataset.s; renderGames(); });
+
+  const g = P.games.find(x => x.game_id === curGame);
+  const stats = STATSETS[statSet];
+  const sp = g.home_spread == null ? "" : ` · Elo line: ${g.home_spread <= 0 ? g.home : g.away} −${Math.abs(g.home_spread)}`;
+  let html = `<p class="small">${fmtDate(g.date)}${sp}. Projection = model mean; small grey number = last-10 average.</p>`;
+  for (const team of [g.away, g.home]) {
+    const ps = P.players.filter(p => p.game_id === g.game_id && p.team === team);
+    if (!ps.length) continue;
+    html += `<h2>${team}</h2><div class="scroll"><table><tr><th>Player</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>` +
+      ps.map(p => `<tr><td><a href="#" data-line="${p.id}">${esc(p.name)}</a>${p.likely_out ? '<span class="out">likely out</span>' : ""}</td>` +
+        stats.map(s => `<td>${fmt(p.proj[s][0])} <span class="sub">${fmt(p.l10[s])}</span></td>`).join("") + "</tr>").join("") +
+      "</table></div>";
+  }
+  $("gametables").innerHTML = html;
+  $("gametables").querySelectorAll("[data-line]").forEach(a => a.onclick = e => {
+    e.preventDefault(); $("lp").value = a.dataset.line; $("ll").dataset.auto = "1"; showTab("line"); renderLine();
+  });
+}
+
+// ---- line checker ----
+function renderLine() {
+  const p = P.players.find(x => x.id === $("lp").value);
+  const s = $("ls").value;
+  if (!p) return;
+  const [mu, param] = p.proj[s];
+  const D = dist(s, mu, param);
+  if ($("ll").dataset.auto !== "0" || $("ll").value === "") { $("ll").value = (Math.floor(p.l10[s] ?? mu) + 0.5).toFixed(1); }
+  const L = parseFloat($("ll").value);
+  const over = D.over(L), under = D.under(L), push = D.push(L);
+  const odds = parseFloat($("lo").value);
+  let edge = "";
+  if (!isNaN(odds) && odds !== 0) {
+    const imp = impliedFromAmerican(odds);
+    const ev = over * (odds > 0 ? odds / 100 : 100 / -odds) - under;  // per 1 unit staked on the over
+    edge = `<div class="tile"><label>Over at ${odds > 0 ? "+" : ""}${odds}</label><div class="v ${ev > 0 ? "pos" : "neg"}">${ev > 0 ? "+" : ""}${(ev * 100).toFixed(1)}%</div>
+      <div class="small">expected return per bet · book implies ${pct(imp)}</div></div>`;
+  }
+  $("lineout").innerHTML = `
+    <div class="bar"><span style="width:${over * 100}%"></span></div>
+    <div class="small" style="display:flex;justify-content:space-between"><span>Over ${pct(over)}</span><span>Under ${pct(under)}</span></div>
+    <div class="result">
+      <div class="tile"><label>P(over ${L})</label><div class="v">${pct(over)}</div><div class="small">fair odds ${american(over)}</div></div>
+      <div class="tile"><label>P(under ${L})</label><div class="v">${pct(under)}</div><div class="small">fair odds ${american(under)}${push ? ` · push ${pct(push)}` : ""}</div></div>
+      <div class="tile"><label>Projection</label><div class="v">${fmt(mu)}</div><div class="small">80% range ${fmt(D.q(0.1), 0)}–${fmt(D.q(0.9), 0)} · median ${fmt(D.q(0.5), 0)}</div></div>
+      <div class="tile"><label>Recent</label><div class="v">${fmt(p.l10[s])}</div><div class="small">last 10 · season ${fmt(p.sea[s])}</div></div>
+      ${edge}
+    </div>
+    <p class="small">${esc(p.name)} (${p.team}) ${p.home ? "vs" : "@"} ${p.opp}, ${fmtDate(p.date)}.
+      ${p.likely_out ? '<b class="neg">Missed the team\'s last 3+ games: likely out.</b> ' : ""}
+      Projected ${fmt(p.proj.min[0])} minutes. Check injury news before betting; the model can't see it.</p>`;
+}
+
+// ---- player pages ----
+let curPlayer = null, logSort = { col: 0, dir: -1 };
+async function loadPlayer(id) {
+  const d = await fetch(`players/${id}.json`).then(r => r.json());
+  curPlayer = d; logSort = { col: 0, dir: -1 };
+  renderPlayer();
+}
+function sparkline(vals, proj) {
+  const w = 600, h = 110, pad = 18, max = Math.max(...vals, proj || 0, 1);
+  const x = i => pad + i * (w - 2 * pad) / Math.max(vals.length - 1, 1), y = v => h - pad - v / max * (h - 2 * pad);
+  const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="recent games">
+    ${proj != null ? `<line x1="${pad}" x2="${w - pad}" y1="${y(proj)}" y2="${y(proj)}" stroke="var(--bad)" stroke-dasharray="4 3"/>
+      <text x="${w - pad}" y="${y(proj) - 4}" text-anchor="end">next: ${proj.toFixed(1)}</text>` : ""}
+    <polyline points="${pts}" fill="none" stroke="var(--bar)" stroke-width="2"/>
+    ${vals.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--bar)"/>`).join("")}
+    <text x="${pad}" y="${h - 4}">last ${vals.length} games</text></svg>`;
+}
+let sparkStat = "pts";
+function renderPlayer() {
+  const d = curPlayer, cols = d.cols;
+  const nxt = P.players.find(p => p.id === d.id);
+  const ci = cols.indexOf(sparkStat);
+  const recent = d.log.slice(-20).map(r => r[ci] ?? 0);
+  const seasonCols = ["gp","min","pts","reb","ast","pra","fg3m","stl","blk","tov","fg_pct","fg3_pct","ft_pct"];
+  const logCols = cols.filter(c => c !== "home");
+  const rows = d.log.map(r => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
+  const sc = logCols[logSort.col];
+  rows.sort((a, b) => (a[sc] > b[sc] ? 1 : a[sc] < b[sc] ? -1 : 0) * logSort.dir);
+  const H = c => ({fg_pct:"FG%", fg3_pct:"3P%", ft_pct:"FT%", gp:"GP", plus_minus:"+/−", date:"Date", opp:"Opp", fg3a:"3PA", pf:"PF"}[c] || SHORT[c] || c.toUpperCase());
+  $("playerout").innerHTML = `
+    <h2>${esc(d.name)} · ${d.team}</h2>
+    ${nxt ? `<p class="small">Next: ${nxt.home ? "vs" : "@"} ${nxt.opp} ${fmtDate(nxt.date)} — projected ${fmt(nxt.proj.pts[0])} pts, ${fmt(nxt.proj.reb[0])} reb, ${fmt(nxt.proj.ast[0])} ast, ${fmt(nxt.proj.pra[0])} PRA.
+      <a href="#" id="toline">Check a line →</a></p>` : ""}
+    <div class="chips">${["pts","reb","ast","pra","fg3m","min"].map(s => `<button data-sp="${s}" class="${s === sparkStat ? "on" : ""}">${SHORT[s]}</button>`).join("")}</div>
+    ${sparkline(recent, nxt ? nxt.proj[sparkStat][0] : null)}
+    <h2>Season averages</h2>
+    <div class="scroll"><table><tr><th>Season</th><th>Team</th>${seasonCols.map(c => `<th>${H(c)}</th>`).join("")}</tr>
+      ${d.seasons.slice().reverse().map(s => `<tr><td>${s.season}</td><td>${s.team}</td>${seasonCols.map(c =>
+        `<td>${c.endsWith("pct") ? (s[c] == null ? "–" : (s[c] * 100).toFixed(1)) : c === "gp" ? s[c] : fmt(s[c])}</td>`).join("")}</tr>`).join("")}
+    </table></div>
+    <h2>Game log (${rows.length} games, click a header to sort)</h2>
+    <div class="scroll"><table id="logtable"><tr>${logCols.map((c, i) => `<th data-c="${i}">${H(c)}${i === logSort.col ? (logSort.dir < 0 ? " ↓" : " ↑") : ""}</th>`).join("")}</tr>
+      ${rows.map(r => `<tr>${logCols.map(c => `<td>${c === "opp" ? (r.home ? "vs " : "@ ") + r.opp : c === "date" ? r.date : c === "min" ? fmt(r[c]) : r[c] ?? "–"}</td>`).join("")}</tr>`).join("")}
+    </table></div>`;
+  $("playerout").querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { sparkStat = b.dataset.sp; renderPlayer(); });
+  $("logtable").querySelectorAll("th").forEach(th => th.onclick = () => {
+    const c = +th.dataset.c; logSort = { col: c, dir: logSort.col === c ? -logSort.dir : -1 }; renderPlayer();
+  });
+  if (nxt) $("toline").onclick = e => { e.preventDefault(); $("lp").value = d.id; $("ls").value = sparkStat; $("ll").dataset.auto = "1"; showTab("line"); renderLine(); };
+}
+
+// ---- model accuracy ----
+function renderModel() {
+  if (!BT) { $("modelout").innerHTML = '<p class="small">No backtest yet. Run <code>python -m scripts.build_props --backtest</code>.</p>'; return; }
+  const ts = P.targets;
+  $("modelout").innerHTML = `
+    <p class="small">Walk-forward backtest over ${BT.seasons.join(", ")}: each season is predicted by a model trained only on earlier seasons.
+      MAE = average miss. Brier scores P(over) at a line of the player's last-10 average (lower is better; "coin" = always guessing the base rate).</p>
+    <div class="scroll"><table><tr><th>Market</th><th>Games</th><th>Model MAE</th><th>Season avg</th><th>Last 10</th><th>Recent form</th><th>Gain</th><th>Brier</th><th>Coin</th></tr>
+    ${ts.filter(t => BT.targets[t]).map(t => { const m = BT.targets[t]; const best = Math.min(m.mae_season_avg, m.mae_last10, m.mae_ewm5);
+      return `<tr><td>${P.labels[t]}</td><td>${m.n.toLocaleString()}</td><td><b>${fmt(m.mae, 2)}</b></td><td>${fmt(m.mae_season_avg, 2)}</td><td>${fmt(m.mae_last10, 2)}</td><td>${fmt(m.mae_ewm5, 2)}</td>
+        <td class="${best > m.mae ? "pos" : "neg"}">${((best - m.mae) / best * 100).toFixed(1)}%</td><td>${fmt(m.brier, 3)}</td><td>${fmt(m.brier_coin, 3)}</td></tr>`; }).join("")}
+    </table></div>
+    <h2>Calibration: points, P(over)</h2>
+    <p class="small">When the model says X%, how often did the over actually hit?</p>
+    <div class="scroll"><table><tr><th>Model said</th><th>Actually hit</th><th>Games</th></tr>
+      ${(BT.targets.pts?.calibration || []).map(c => `<tr><td>${pct(c.p)}</td><td>${pct(c.hit)}</td><td>${c.n.toLocaleString()}</td></tr>`).join("")}
+    </table></div>`;
+}
+
+// ---- boot ----
+Promise.all([
+  fetch("props.json").then(r => r.json()),
+  fetch("props_backtest.json").then(r => r.ok ? r.json() : null).catch(() => null),
+  fetch("players/index.json").then(r => r.json()),
+]).then(([props, bt, index]) => {
+  P = props; BT = bt; INDEX = index;
+  const pm = bt?.targets?.pts, pram = bt?.targets?.pra;
+  $("meta").textContent = `Season ${P.season} · updated ${new Date(P.built_at).toLocaleString()} · ${P.players.length} players projected` +
+    (pm ? ` · backtest MAE: pts ${pm.mae.toFixed(2)}, PRA ${pram.mae.toFixed(2)}` : "");
+  curGame = P.games[0]?.game_id;
+  if (curGame) renderGames(); else $("gametables").innerHTML = '<p class="meta">No upcoming games.</p>';
+
+  $("lp").innerHTML = P.players.slice().sort((a, b) => a.name.localeCompare(b.name))
+    .map(p => `<option value="${p.id}">${esc(p.name)} (${p.team} ${p.home ? "vs" : "@"} ${p.opp})</option>`).join("");
+  $("ls").innerHTML = P.targets.map(t => `<option value="${t}">${P.labels[t]}</option>`).join("");
+  $("lp").onchange = $("ls").onchange = () => { $("ll").dataset.auto = "1"; renderLine(); };
+  $("ll").oninput = () => { $("ll").dataset.auto = "0"; renderLine(); };
+  $("lo").oninput = renderLine;
+  renderLine();
+
+  $("plist").innerHTML = INDEX.map(p => `<option value="${esc(p[1])} · ${p[2]} (${p[3]})">`).join("");
+  $("search").onchange = () => {
+    const hit = INDEX.find(p => `${p[1]} · ${p[2]} (${p[3]})` === $("search").value)
+             || INDEX.find(p => p[1].toLowerCase().includes($("search").value.toLowerCase()));
+    if (hit) loadPlayer(hit[0]);
+  };
+  renderModel();
+}).catch(e => { $("meta").textContent = "Couldn't load projections: " + e; });
+</script>
+</body>
+</html>

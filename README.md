@@ -35,13 +35,30 @@ cdn.nba.com feed  ─┘                 site/ratings.json
 
 3. **Deploy.** Push to GitHub, then go to **Settings → Pages → Source: GitHub Actions**. The workflow runs daily at about 6am Pacific, or on demand from the Actions tab.
 
+## Player props
+
+`site/props.html` projects every rotation player's next game: points, rebounds, assists, 3PM, steals, blocks, turnovers, shooting, minutes, and the combo markets (PRA, P+R, P+A, R+A, S+B). Enter a sportsbook line (and optionally the odds) to get P(over)/P(under), fair odds and expected value. Every player since 2018-19 has a page with season averages and a full game log.
+
+- **`nbaelo/players.py`**: box scores. History in `data/player_logs.csv`; new games come from the CDN box score feed, which works from GitHub Actions.
+- **`nbaelo/props.py`**: the model. Features use only earlier games: recent form (exponentially weighted, last 10, season), per-minute rates × projected minutes, opponent defense vs the league for that stat, pace, rest/back-to-backs, Elo spread (blowout risk), and teammates who sat. One gradient-boosted model per stat predicts the mean. A negative binomial around it, with dispersion fitted on out-of-sample games, gives the probabilities.
+- **Rotation / injuries**: players are listed if they averaged 10+ minutes in the team's last 10 games. Anyone who missed the last 3 is flagged "likely out". There's no injury feed, so always check news before betting.
+
+```bash
+pip install -r requirements.txt
+python -m scripts.backfill_players 2018 2026   # once, locally (~2 min)
+python -m scripts.build_props                    # ~2 min
+python -m scripts.build_props --backtest         # also writes site/props_backtest.json (~10 min)
+```
+
+The backtest walks forward (train on earlier seasons, predict the next) and compares the model's average miss against season average, last-10 and recent form. It also checks that P(over) is calibrated. Results are on the page's "Model accuracy" tab. Single-game stats are noisy, so treat the probabilities as an edge finder, not a sure thing.
+
 ## Tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-No dependencies needed for the build or tests (standard library only). `nba_api` and `pandas` are only for the backfill.
+The team Elo build and its tests need only the standard library. The props tests are skipped unless `requirements.txt` is installed.
 
 ## Using it from an app
 
