@@ -166,6 +166,7 @@ function go(tab) {
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
   ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks })[tab]();
   history.replaceState(null, "", "#" + tab);
+  renderParlayBar();
 }
 function openDesk(pid, stat, line) {
   S.desk.pid = pid; S.desk.stat = stat; S.desk.line = line ?? null; go("desk");
@@ -247,21 +248,23 @@ function renderBoard() {
       <label class="check" style="margin-top:18px"><input type="checkbox" id="bout" ${b.hideOut ? "checked" : ""}> Hide likely out</label>
     </div>
     <div class="scroll"><table class="agate">
-      <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th></tr>
+      <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th><th><span class="sr">Parlay</span></th></tr>
       ${rows.slice(0, 80).map(r => { const lean = r.over >= r.under ? ["o", "Over", r.over] : ["u", "Under", r.under];
         return `<tr class="click" data-pid="${r.p.id}" data-line="${r.line}">
         <td><span class="pname">${esc(r.p.name)}</span> <span class="muted">${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
         <td class="muted">${r.p.home ? "vs" : "@"} ${r.p.opp} · ${dayLabel(r.p.date)}</td>
         <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
         <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
-        <td style="text-align:left"><span class="pbar" data-tip="Over ${pct(r.over, 1)} · Under ${pct(r.under, 1)}"><i style="width:${r.over * 100}%"></i></span><span class="lean ${lean[0]}">${lean[1]} ${pct(lean[2])}</span></td></tr>`; }).join("")}
+        <td style="text-align:left"><span class="pbar" data-tip="Over ${pct(r.over, 1)} · Under ${pct(r.under, 1)}"><i style="width:${r.over * 100}%"></i></span><span class="lean ${lean[0]}">${lean[1]} ${pct(lean[2])}</span></td>
+        <td>${addBtn(r.p, b.stat, r.line, lean[1].toLowerCase(), lean[2])}</td></tr>`; }).join("")}
     </table></div>
-    <p class="note">Showing ${Math.min(80, rows.length)} of ${rows.length} players. Small gaps are noise: single-game stats swing a lot, so look for big disagreements.</p>
+    <p class="note">Showing ${Math.min(80, rows.length)} of ${rows.length} players. Small gaps are noise: single-game stats swing a lot, so look for big disagreements. Tap + to add the model's lean to your parlay at −110; set your book's odds on the Line Desk.</p>
   </div>`;
   $("bstat").onchange = e => { b.stat = e.target.value; renderBoard(); };
   $("bsort").onclick = e => { const x = e.target.closest("button"); if (x) { b.sort = x.dataset.k; renderBoard(); } };
   $("bout").onchange = e => { b.hideOut = e.target.checked; renderBoard(); };
   el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => openDesk(tr.dataset.pid, b.stat, +tr.dataset.line));
+  wireAddBtns(el);
 }
 
 // ==================== LINE DESK ====================
@@ -646,12 +649,51 @@ const PARLAY = "propsheet.parlay";
 const parlay = (() => { try { return { stake:"1", odds:{ sign:1, abs:"" }, ...JSON.parse(store.get(PARLAY) || "{}") }; }
                         catch { return { stake:"1", odds:{ sign:1, abs:"" } }; } })();
 parlay.legs ||= [];
-const saveParlay = () => store.set(PARLAY, JSON.stringify(parlay));
+const saveParlay = () => { store.set(PARLAY, JSON.stringify(parlay)); renderParlayBar(); };
 const inParlay = (pid, stat) => parlay.legs.some(l => l.pid === pid && l.stat === stat);
 function addLeg(leg) {  // one leg per player and market; adding again replaces it
   const i = parlay.legs.findIndex(l => l.pid === leg.pid && l.stat === leg.stat);
   if (i >= 0) parlay.legs[i] = leg; else parlay.legs.push(leg);
   saveParlay();
+}
+
+// "+" buttons on The Board and Model Picks: add that side at −110, tap again to take it out.
+const sameLeg = (l, pid, stat, line, side) => l.pid === pid && l.stat === stat && l.line === line && l.side === side;
+function addBtn(p, stat, line, side, modelP) {
+  const on = parlay.legs.some(l => sameLeg(l, p.id, stat, line, side));
+  return `<button type="button" class="addp ${on ? "on" : ""}" data-pid="${p.id}" data-g="${p.game_id}" data-s="${stat}" data-l="${line}" data-side="${side}" data-p="${modelP}"
+    aria-pressed="${on}" aria-label="${on ? "Remove from" : "Add to"} parlay" title="${on ? "In your parlay: tap to remove" : "Add to parlay"}">${on ? "✓" : "+"}</button>`;
+}
+function wireAddBtns(el) {
+  el.querySelectorAll(".addp").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();  // the row itself opens the Line Desk
+    const d = btn.dataset, p = P.players.find(x => x.id === d.pid && x.game_id === d.g), line = +d.l;
+    const i = parlay.legs.findIndex(l => sameLeg(l, d.pid, d.s, line, d.side));
+    if (i >= 0) { parlay.legs.splice(i, 1); saveParlay(); }
+    else if (parlay.legs.length >= 12) { alert("A parlay can have at most 12 legs."); return; }
+    else addLeg(betOf({ p, s:d.s, L:line, side:d.side, odds:-110, modelP:+d.p, mu:p.proj[d.s][0] }));
+    const on = i < 0;
+    btn.classList.toggle("on", on); btn.textContent = on ? "✓" : "+";
+    btn.setAttribute("aria-pressed", on); btn.setAttribute("aria-label", (on ? "Remove from" : "Add to") + " parlay");
+    // a replaced leg (same player and market, other side or line) un-ticks its old button
+    el.querySelectorAll(".addp.on").forEach(b => { const x = b.dataset;
+      if (!parlay.legs.some(l => sameLeg(l, x.pid, x.s, +x.l, x.side))) { b.classList.remove("on"); b.textContent = "+"; } });
+  });
+}
+
+// A bar along the bottom on every tab but the Line Desk, while a parlay is being built.
+function renderParlayBar() {
+  let bar = $("pbar2");
+  if (!bar) { bar = document.createElement("div"); bar.id = "pbar2"; document.body.append(bar); }
+  const legs = parlay.legs;
+  const show = legs.length > 0 && S.tab !== "desk";
+  document.body.style.paddingBottom = show ? "72px" : "";  // so the bar never hides the last row
+  if (!show) { bar.classList.remove("show"); return; }
+  bar.innerHTML = `<div><b>Parlay</b> · ${legs.length} leg${legs.length > 1 ? "s" : ""}${legs.length > 1
+      ? ` · pays ${(o => (o > 0 ? "+" : "−") + Math.abs(o))(parlayOdds(legs))} · model ${pct(legs.reduce((a, l) => a * l.modelP, 1), 1)}` : " · add one more"}</div>
+    <button type="button" id="pbaropen">Open slip →</button>`;
+  bar.classList.add("show");
+  $("pbaropen").onclick = () => { go("desk"); setTimeout(() => $("parlay")?.scrollIntoView({ behavior:"smooth", block:"start" }), 50); };
 }
 
 function renderParlay() {
@@ -830,14 +872,15 @@ function renderPicks() {
 
     <div><h3 class="sub">${pending.length ? `Open picks · ${dayLabel(pending[0].date)}` : "Open picks"}<small>${pending.length} pending</small></h3>
     ${pending.length ? `<div class="scroll"><table class="agate">
-      <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th></tr>
+      <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
       ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
         <td><span class="pname">${esc(x.player)}</span> <span class="muted">${esc(x.team)}</span></td>
         <td class="muted">${x.home ? "vs" : "@"} ${esc(x.opp)} · ${dayLabel(x.date)}</td>
         <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
         <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>
-        <td>${fmt(x.proj)}</td><td class="muted">${fmt(x.form)}</td></tr>`).join("")}</table></div>
-      <p class="note">“Form said” is the chance recent form alone gives that side (about 50%, by design). Tap a pick to price it against your book's line.</p>`
+        <td>${fmt(x.proj)}</td><td class="muted">${fmt(x.form)}</td>
+        <td>${byId[x.player_id + "|" + x.game_id] ? addBtn(byId[x.player_id + "|" + x.game_id], x.stat, x.line, x.side, x.p) : ""}</td></tr>`).join("")}</table></div>
+      <p class="note">“Form said” is the chance recent form alone gives that side (about 50%, by design). Tap a pick to price it against your book's line, or + to add it to your parlay.</p>`
       : `<p class="note">No open picks right now. The next slate's picks are published with the morning update.</p>`}</div>
 
     <div><h3 class="sub">Live record<small>since picks started</small></h3>
@@ -876,4 +919,5 @@ function renderPicks() {
     if (byId[tr.dataset.pid + "|" + tr.dataset.g]) openDesk(tr.dataset.pid, tr.dataset.s, +tr.dataset.l);
   });
   if ($("pall")) $("pall").onclick = () => { S.picksAll = !S.picksAll; renderPicks(); };
+  wireAddBtns(el);
 }
