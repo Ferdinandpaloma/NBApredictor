@@ -3,7 +3,7 @@
 # cdn.nba.com blocks GitHub's runners, so the data is pulled here through
 # stats.nba.com, then pushed; Vercel redeploys on the push.
 set -euo pipefail
-export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
