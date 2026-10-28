@@ -146,10 +146,11 @@ def main() -> None:
     players.sort(key=lambda p: (p["date"], p["game_id"], p["team"], -(p["proj"]["min"][0] or 0)))
     games = sorted({(g["date"], g["game_id"]) for g in nxt})
     by_id = {g.game_id: g for g in upcoming}
+    tips = {g["gameId"]: g.get("gameDateTimeUTC") for d in raw["leagueSchedule"]["gameDates"] for g in d["games"]}
     write_json(args.out / "props.json", {
         "built_at": now_iso(), "season": season, "labels": props.LABELS, "targets": props.TARGETS,
         "games": [{"game_id": gid, "date": d, "home": by_id[gid].home, "away": by_id[gid].away,
-                   "home_spread": spreads.get(gid)} for d, gid in games],
+                   "home_spread": spreads.get(gid), "tip": tips.get(gid)} for d, gid in games],
         "players": players,
     })
     player_pages(df, args.out / "players")

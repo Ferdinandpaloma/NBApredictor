@@ -3,297 +3,729 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NBA Player Props</title>
+<title>The Prop Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#fafaf9; --fg:#1c1917; --muted:#78716c; --line:#e7e5e4; --bar:#2563eb; --bar2:#d6d3d1;
-          --good:#15803d; --bad:#b91c1c; --chip:#f5f5f4; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#0c0a09; --fg:#f5f5f4; --muted:#a8a29e; --line:#292524; --bar:#60a5fa; --bar2:#44403c;
-            --good:#4ade80; --bad:#f87171; --chip:#1c1917; }
+  /* ---------- tokens: day edition (newsprint) ---------- */
+  :root {
+    color-scheme: light;
+    --paper:#f3eee3; --paper-2:#ebe4d5; --card:#f8f4ec; --ink:#1a1714; --ink-2:#4a443b; --muted:#7a7266;
+    --rule:#d6cdbb; --rule-strong:#1a1714; --dot:rgba(26,23,20,.07);
+    --over:#c4410c; --over-soft:#f3d6c6; --under:#2468b4; --under-soft:#d3e1f1;
+    --good:#1d7a2e; --bad:#b4261f;
+    --display:"Big Shoulders Display", "Arial Narrow", sans-serif;
+    --ui:"Barlow Semi Condensed", "Arial Narrow", sans-serif;
+    --serif:"Newsreader", Georgia, serif;
   }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg);
-         font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  main { max-width:960px; margin:0 auto; padding:24px 16px 48px; }
-  h1 { font-size:22px; margin:0 0 4px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:28px 0 8px; }
-  a { color:var(--bar); text-decoration:none; }
-  .meta, .small { color:var(--muted); font-size:13px; }
-  nav { display:flex; gap:6px; margin:16px 0; flex-wrap:wrap; }
-  nav button, .chips button { font:inherit; font-size:13px; padding:6px 12px; border-radius:999px; cursor:pointer;
-         border:1px solid var(--line); background:var(--chip); color:var(--fg); }
-  nav button.on, .chips button.on { background:var(--fg); color:var(--bg); border-color:var(--fg); }
-  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
-  .scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; font-size:13px; }
-  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
-  th { color:var(--muted); font-weight:500; cursor:pointer; user-select:none; }
-  th:first-child, td:first-child { text-align:left; }
-  .out { color:var(--bad); font-size:11px; margin-left:4px; }
-  .sub { color:var(--muted); font-size:11px; }
-  label { display:block; font-size:12px; color:var(--muted); margin-bottom:3px; }
-  input, select { font:inherit; padding:7px 9px; border:1px solid var(--line); border-radius:8px;
-                  background:var(--bg); color:var(--fg); width:100%; }
-  .form { display:grid; grid-template-columns:2fr 1.4fr 1fr 1fr; gap:10px; }
-  @media (max-width:640px) { .form { grid-template-columns:1fr 1fr; } }
-  .result { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:16px; }
-  .tile { border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
-  .tile .v { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  /* ---------- night edition ---------- */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --paper:#15130f; --paper-2:#1d1a15; --card:#1f1c17; --ink:#efe8d8; --ink-2:#c4bba8; --muted:#8e8574;
+      --rule:#35302a; --rule-strong:#efe8d8; --dot:rgba(239,232,216,.045);
+      --over:#e8642c; --over-soft:#4a2414; --under:#5a8fc8; --under-soft:#1b2e45;
+      --good:#5cc46e; --bad:#ef6a5f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper:#15130f; --paper-2:#1d1a15; --card:#1f1c17; --ink:#efe8d8; --ink-2:#c4bba8; --muted:#8e8574;
+    --rule:#35302a; --rule-strong:#efe8d8; --dot:rgba(239,232,216,.045);
+    --over:#e8642c; --over-soft:#4a2414; --under:#5a8fc8; --under-soft:#1b2e45;
+    --good:#5cc46e; --bad:#ef6a5f;
+  }
+
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; color:var(--ink); font:16px/1.45 var(--ui); font-variant-numeric:tabular-nums;
+    background-color:var(--paper);
+    /* halftone dots that fade out down the page, like a press run going light */
+    background-image:
+      radial-gradient(var(--dot) 1.1px, transparent 1.3px),
+      linear-gradient(180deg, transparent 0, var(--paper) 520px);
+    background-size:7px 7px, 100% 100%;
+    background-attachment:local;
+  }
+  a { color:inherit; }
+  button, input, select { font:inherit; color:inherit; }
+  .wrap { max-width:1120px; margin:0 auto; padding:0 16px 64px; }
+
+  /* ---------- masthead ---------- */
+  .ears { display:flex; justify-content:space-between; gap:12px; padding:14px 0 6px; font-size:12px;
+          letter-spacing:.12em; text-transform:uppercase; color:var(--ink-2); }
+  .ears a { text-decoration:none; border-bottom:1px solid var(--rule); }
+  .ears button { background:none; border:1px solid var(--rule); border-radius:999px; padding:2px 10px;
+                 cursor:pointer; letter-spacing:.1em; text-transform:uppercase; font-size:11px; }
+  .mast { border-top:3px solid var(--rule-strong); border-bottom:1px solid var(--rule-strong); padding:6px 0 2px; text-align:center; }
+  .mast h1 { font:900 clamp(52px, 11vw, 132px)/.86 var(--display); letter-spacing:-.01em; margin:0;
+             text-transform:uppercase; }
+  .mast h1 span { color:var(--over); }
+  .dateline { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 18px; border-bottom:3px double var(--rule-strong);
+              padding:6px 0; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); }
+  .dateline b { color:var(--ink); font-weight:600; }
+
+  /* ---------- section nav ---------- */
+  nav.sections { position:sticky; top:0; z-index:5; background:var(--paper); border-bottom:1px solid var(--rule);
+                 display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; margin-bottom:22px; }
+  nav.sections::-webkit-scrollbar { display:none; }
+  nav.sections button { flex:none; background:none; border:0; padding:12px 14px 10px; cursor:pointer;
+                        font:800 17px/1 var(--display); text-transform:uppercase; letter-spacing:.04em; color:var(--muted);
+                        border-bottom:3px solid transparent; }
+  nav.sections button:hover { color:var(--ink); }
+  nav.sections button.on { color:var(--ink); border-bottom-color:var(--over); }
+
+  /* ---------- shared bits ---------- */
+  .kicker { font:600 12px/1 var(--ui); letter-spacing:.16em; text-transform:uppercase; color:var(--over); margin:0 0 6px; }
+  h2.head { font:900 clamp(34px, 5.5vw, 56px)/.92 var(--display); text-transform:uppercase; margin:0; letter-spacing:-.005em; }
+  h3.sub { font:800 20px/1 var(--display); text-transform:uppercase; letter-spacing:.03em; margin:26px 0 10px;
+           padding-bottom:6px; border-bottom:2px solid var(--rule-strong); display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  h3.sub small { font:500 12px var(--ui); letter-spacing:.08em; color:var(--muted); }
+  .deck { font:italic 400 17px/1.45 var(--serif); color:var(--ink-2); margin:8px 0 0; max-width:62ch; }
+  .note { font:400 14px/1.5 var(--serif); color:var(--ink-2); }
+  .muted { color:var(--muted); }
+  .seg { display:inline-flex; border:1px solid var(--rule-strong); border-radius:3px; overflow:hidden; }
+  .seg button { background:none; border:0; padding:6px 12px; cursor:pointer; font:600 13px var(--ui); letter-spacing:.06em; text-transform:uppercase; }
+  .seg button + button { border-left:1px solid var(--rule-strong); }
+  .seg button.on { background:var(--ink); color:var(--paper); }
+  .controls { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:center; margin:16px 0 4px; }
+  .check { display:inline-flex; gap:6px; align-items:center; font-size:14px; color:var(--ink-2); cursor:pointer; }
+  .check input { accent-color:var(--over); width:16px; height:16px; }
+  .field label { display:block; font:600 11px var(--ui); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .field input, .field select, input.search {
+    width:100%; background:var(--card); border:1px solid var(--rule); border-bottom:2px solid var(--ink); border-radius:2px;
+    padding:9px 10px; font-size:16px; }
+  .field input:focus, .field select:focus, input.search:focus { outline:2px solid var(--over); outline-offset:1px; }
+  .tag { display:inline-block; font:700 10px/1 var(--ui); letter-spacing:.12em; text-transform:uppercase;
+         padding:3px 5px; border:1px solid currentColor; border-radius:2px; vertical-align:2px; margin-left:6px; }
+  .tag.out { color:var(--bad); }
+  .hidden { display:none !important; }
+
+  /* ---------- agate tables ---------- */
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table.agate { width:100%; border-collapse:collapse; font-size:14px; }
+  .agate th { font:700 11px var(--ui); letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+              text-align:right; padding:6px 7px; border-bottom:1px solid var(--rule-strong); white-space:nowrap; }
+  .agate td { text-align:right; padding:6px 7px; border-bottom:1px solid var(--rule); white-space:nowrap; }
+  .agate th:first-child, .agate td:first-child { text-align:left; padding-left:0; }
+  .agate tr.click { cursor:pointer; }
+  .agate tr.click:hover td { background:var(--paper-2); }
+  .agate tr.dim td { opacity:.5; }
+  .agate th.sortable { cursor:pointer; }
+  .agate th.sortable:hover { color:var(--ink); }
+  .pname { font-weight:600; }
+  .proj { font-weight:700; font-size:15px; }
+  .delta { font-size:11px; color:var(--muted); margin-left:3px; }
+  .stack .delta { display:block; margin:1px 0 0; font-size:10px; line-height:1; }
+  .stack td { padding-top:5px; padding-bottom:5px; }
+  .minbar { display:inline-block; width:30px; height:5px; background:var(--rule); vertical-align:middle; margin-left:6px; border-radius:2px; overflow:hidden; }
+  .minbar i { display:block; height:100%; background:var(--ink-2); }
+
+  /* ---------- the slate: game tickets ---------- */
+  .slate { display:flex; gap:10px; overflow-x:auto; padding:4px 2px 12px; scroll-snap-type:x proximity; }
+  .ticket { flex:none; scroll-snap-align:start; width:156px; text-align:left; cursor:pointer; position:relative;
+            background:var(--card); border:1px solid var(--rule); border-radius:3px; padding:10px 12px 9px;
+            transition:transform .18s ease, border-color .18s ease; }
+  .ticket::after { /* perforated stub edge */
+    content:""; position:absolute; left:-1px; right:-1px; bottom:26px; height:0; border-top:1px dashed var(--rule); }
+  .ticket:hover { transform:translateY(-2px); border-color:var(--ink-2); }
+  .ticket.on { border-color:var(--over); box-shadow:inset 0 3px 0 var(--over); }
+  .ticket .day { font:600 11px var(--ui); letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .ticket .match { font:900 26px/1.05 var(--display); margin:3px 0 12px; letter-spacing:.01em; }
+  .ticket .match em { font-style:normal; font-weight:600; font-size:15px; color:var(--muted); margin:0 3px; }
+  .ticket .line { font-size:12px; color:var(--ink-2); }
+  .gamehead { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:18px; }
+  .teams { display:grid; grid-template-columns:1fr 1fr; gap:0 34px; }
+  .teams > div, .desk > *, .calib > * { min-width:0; }
+  .teams > div + div { border-left:1px solid var(--rule); padding-left:34px; }
+  @media (max-width:900px) { .teams { grid-template-columns:1fr; } .teams > div + div { border-left:0; padding-left:0; } }
+
+  /* ---------- the board ---------- */
+  .pbar { display:inline-block; position:relative; width:84px; height:8px; background:var(--under-soft); border-radius:2px; vertical-align:middle; margin-right:8px; overflow:hidden; }
+  .pbar i { position:absolute; left:0; top:0; bottom:0; background:var(--over); }
+  .pbar::after { content:""; position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:var(--ink); }
+  .lean { font-weight:700; }
+  .lean.o { color:var(--over); } .lean.u { color:var(--under); }
+
+  /* ---------- line desk ---------- */
+  .desk { display:grid; grid-template-columns:minmax(260px, 340px) 1fr; gap:28px; margin-top:18px; }
+  @media (max-width:860px) { .desk { grid-template-columns:1fr; } }
+  .desk-form { display:grid; gap:14px; align-content:start; }
+  .stepper { display:grid; grid-template-columns:44px 1fr 44px; }
+  .stepper button { background:var(--ink); color:var(--paper); border:0; font:800 22px/1 var(--display); cursor:pointer; }
+  .stepper button:first-child { border-radius:2px 0 0 2px; } .stepper button:last-child { border-radius:0 2px 2px 0; }
+  .stepper input { text-align:center; border-radius:0 !important; font:800 22px var(--display) !important; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .slip { background:var(--card); border:1px solid var(--rule); border-radius:3px; position:relative; }
+  .slip-top { padding:18px 20px 14px; border-bottom:1px dashed var(--rule); }
+  .slip-who { font:800 15px var(--display); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); }
+  .split { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+  .side .lab { font:700 12px var(--ui); letter-spacing:.14em; text-transform:uppercase; }
+  .side .big { font:900 clamp(54px, 8vw, 84px)/.9 var(--display); letter-spacing:-.01em; }
+  .side.o .lab, .side.o .big { color:var(--over); }
+  .side.u { text-align:right; } .side.u .lab, .side.u .big { color:var(--under); }
+  .side .fair { font-size:13px; color:var(--ink-2); margin-top:4px; }
+  .splitbar { display:flex; height:10px; gap:2px; margin-top:12px; }
+  .splitbar i { display:block; height:100%; border-radius:2px; transition:width .35s cubic-bezier(.2,.7,.2,1); }
+  .slip-body { padding:14px 20px 18px; }
+  .facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin:4px 0 14px; }
+  .fact .k { font:600 11px var(--ui); letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+  .fact .v { font:800 28px/1 var(--display); margin-top:3px; }
+  .fact .s { font-size:12px; color:var(--ink-2); }
+  .ev { display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px; }
+  .ev div { border:1px solid var(--rule); border-radius:2px; padding:8px 10px; font-size:14px; flex:1 1 200px; }
+  .ev b { font:800 20px var(--display); }
   .pos { color:var(--good); } .neg { color:var(--bad); }
-  .bar { display:flex; height:8px; border-radius:4px; overflow:hidden; margin:10px 0 4px; background:var(--bar2); }
-  .bar span { background:var(--bar); }
-  svg text { fill:var(--muted); font-size:10px; }
-  .hidden { display:none; }
+  .warn { border-left:3px solid var(--bad); padding:6px 10px; margin:10px 0; font:400 14px/1.45 var(--serif); }
+  .recent { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+  .recent span { min-width:34px; text-align:center; padding:5px 4px; border-radius:2px; font-weight:700; font-size:14px; }
+  .recent .o { background:var(--over-soft); color:var(--over); }
+  .recent .u { background:var(--under-soft); color:var(--under); }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--ink-2); letter-spacing:.06em; text-transform:uppercase; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px; }
+
+  /* ---------- charts ---------- */
+  .chart { position:relative; }
+  .chart svg { display:block; width:100%; height:auto; overflow:visible; }
+  .chart text { fill:var(--muted); font:500 11px var(--ui); letter-spacing:.04em; }
+  .chart .lbl { fill:var(--ink); font-weight:700; }
+  .grow { transform-box:fill-box; transform-origin:bottom; animation:grow .55s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes grow { from { transform:scaleY(0); } }
+  #tip { position:fixed; z-index:20; pointer-events:none; background:var(--ink); color:var(--paper); font:500 13px/1.35 var(--ui);
+         padding:6px 9px; border-radius:3px; max-width:240px; opacity:0; transform:translateY(4px); transition:opacity .12s, transform .12s; }
+  #tip.show { opacity:1; transform:none; }
+
+  /* ---------- player files ---------- */
+  .finder { position:relative; max-width:520px; margin-top:16px; }
+  .sugg { position:absolute; left:0; right:0; top:100%; z-index:6; background:var(--card); border:1px solid var(--rule-strong); border-top:0; }
+  .sugg button { display:flex; justify-content:space-between; width:100%; text-align:left; background:none; border:0; padding:9px 10px; cursor:pointer; font-size:15px; }
+  .sugg button:hover, .sugg button.act { background:var(--paper-2); }
+  .sugg small { color:var(--muted); }
+  .profile { display:grid; grid-template-columns:1fr auto; gap:6px 20px; align-items:end; margin-top:24px;
+             border-bottom:2px solid var(--rule-strong); padding-bottom:10px; }
+  .profile .nm { font:900 clamp(40px, 7vw, 76px)/.9 var(--display); text-transform:uppercase; }
+  .profile .tm { font:800 22px var(--display); color:var(--over); letter-spacing:.06em; }
+  .tiles { display:grid; grid-template-columns:repeat(6, 1fr); border:1px solid var(--rule); border-radius:3px; margin-top:14px; background:var(--card); }
+  .tiles > div { padding:10px 12px; } .tiles > div + div { border-left:1px solid var(--rule); }
+  @media (max-width:640px) { .tiles { grid-template-columns:repeat(3, 1fr); } .tiles > div:nth-child(4) { border-left:0; } .tiles > div:nth-child(n+4) { border-top:1px solid var(--rule); } }
+  .more { margin-top:10px; background:none; border:1px solid var(--rule-strong); padding:7px 14px; cursor:pointer; font:600 13px var(--ui); letter-spacing:.1em; text-transform:uppercase; border-radius:2px; }
+
+  /* ---------- track record ---------- */
+  .scoreline { display:grid; grid-template-columns:repeat(4, 1fr); gap:0; border-top:2px solid var(--rule-strong); border-bottom:1px solid var(--rule); margin-top:18px; }
+  .scoreline > div { padding:12px 14px 12px 0; } .scoreline > div + div { padding-left:14px; border-left:1px solid var(--rule); }
+  @media (max-width:640px) { .scoreline { grid-template-columns:1fr 1fr; } .scoreline > div:nth-child(3) { border-left:0; padding-left:0; } .scoreline > div:nth-child(n+3) { border-top:1px solid var(--rule); } }
+  .calib { display:grid; grid-template-columns:minmax(0, 420px) 1fr; gap:28px; align-items:start; }
+  @media (max-width:760px) { .calib { grid-template-columns:1fr; } }
+
+  /* ---------- page-load: the press run ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    .ears, .mast, .dateline, nav.sections { animation:press .7s cubic-bezier(.2,.7,.2,1) both; }
+    .mast { animation-delay:.05s; } .dateline { animation-delay:.18s; } nav.sections { animation-delay:.28s; }
+    .reveal > * { animation:rise .6s cubic-bezier(.2,.7,.2,1) both; }
+    .reveal > *:nth-child(1) { animation-delay:.05s; } .reveal > *:nth-child(2) { animation-delay:.12s; }
+    .reveal > *:nth-child(3) { animation-delay:.19s; } .reveal > *:nth-child(4) { animation-delay:.26s; }
+    .reveal > *:nth-child(5) { animation-delay:.33s; } .reveal > *:nth-child(n+6) { animation-delay:.4s; }
+  }
+  @media (prefers-reduced-motion: reduce) { .grow { animation:none; } * { transition:none !important; } }
+  @keyframes press { from { opacity:0; transform:translateY(-10px); clip-path:inset(0 0 100% 0); } to { opacity:1; transform:none; clip-path:inset(0); } }
+  @keyframes rise { from { opacity:0; transform:translateY(12px); } }
 </style>
 </head>
 <body>
-<main>
-  <h1>NBA Player Props</h1>
-  <div class="meta" id="meta">Loading…</div>
-  <div class="small"><a href="./">← Team Elo picks</a></div>
-  <nav>
-    <button data-tab="games" class="on">Next games</button>
-    <button data-tab="line">Line checker</button>
-    <button data-tab="player">Player stats</button>
-    <button data-tab="model">Model accuracy</button>
+<div class="wrap">
+  <div class="ears">
+    <span>NBA · Player Props Edition</span>
+    <span><a href="./">Team picks</a> &nbsp; <button id="theme" type="button" aria-label="Switch theme">Auto</button></span>
+  </div>
+  <header class="mast"><h1>The Prop <span>Sheet</span></h1></header>
+  <div class="dateline" id="dateline"><span>Loading the late edition…</span></div>
+
+  <nav class="sections" id="nav">
+    <button data-tab="slate" class="on">Tonight's Slate</button>
+    <button data-tab="board">The Board</button>
+    <button data-tab="desk">Line Desk</button>
+    <button data-tab="files">Player Files</button>
+    <button data-tab="record">Track Record</button>
   </nav>
 
-  <section id="tab-games">
-    <div class="chips" id="gamechips"></div>
-    <div class="chips" id="statchips"></div>
-    <div id="gametables"></div>
-  </section>
+  <main>
+    <section id="tab-slate"></section>
+    <section id="tab-board" class="hidden"></section>
+    <section id="tab-desk" class="hidden"></section>
+    <section id="tab-files" class="hidden"></section>
+    <section id="tab-record" class="hidden"></section>
+  </main>
+</div>
+<div id="tip" role="tooltip"></div>
 
-  <section id="tab-line" class="hidden">
-    <div class="form">
-      <div><label>Player</label><select id="lp"></select></div>
-      <div><label>Market</label><select id="ls"></select></div>
-      <div><label>Line</label><input id="ll" type="number" step="0.5" inputmode="decimal"></div>
-      <div><label>Over odds (optional)</label><input id="lo" type="number" placeholder="-110" inputmode="numeric"></div>
-    </div>
-    <div id="lineout"></div>
-  </section>
-
-  <section id="tab-player" class="hidden">
-    <label>Search any player since 2018-19</label>
-    <input id="search" list="plist" placeholder="Type a name…" autocomplete="off">
-    <datalist id="plist"></datalist>
-    <div id="playerout"></div>
-  </section>
-
-  <section id="tab-model" class="hidden"><div id="modelout"></div></section>
-</main>
 <script>
 const $ = id => document.getElementById(id);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const fmt = (x, d = 1) => x == null ? "–" : (+x).toFixed(d);
-const pct = p => (p * 100).toFixed(1) + "%";
-const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (x, d = 1) => x == null || isNaN(x) ? "–" : (+x).toFixed(d);
+const pct = (p, d = 0) => p == null ? "–" : (p * 100).toFixed(d) + "%";
 const SHORT = { pts:"PTS", reb:"REB", ast:"AST", pra:"PRA", pr:"P+R", pa:"P+A", ra:"R+A", fg3m:"3PM",
   stl:"STL", blk:"BLK", stocks:"S+B", tov:"TOV", fgm:"FGM", fga:"FGA", ftm:"FTM", fta:"FTA",
   oreb:"OREB", dreb:"DREB", min:"MIN" };
-let P = null, BT = null, INDEX = [];
+const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
+                 more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
+let P, BT, INDEX = [];
+const S = {
+  tab:"slate", game:null, group:"main", showOut:true,
+  board:{ stat:"pra", sort:"gap", hideOut:true },
+  desk:{ pid:null, stat:"pra", line:null, oOdds:"", uOdds:"" },
+  file:{ id:null, stat:"pts", all:false, sort:{ col:"date", dir:-1 } },
+  rec:{ stat:"pts" },
+};
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+                set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
 
-// ---- distributions: negative binomial for counts, normal for minutes ----
+// ---------- dates ----------
+const today = new Date(); today.setHours(0, 0, 0, 0);
+function dayLabel(d) {
+  const dt = new Date(d + "T12:00:00"), diff = Math.round((dt - today) / 864e5);
+  if (diff === 0) return "Tonight";
+  if (diff === 1) return "Tomorrow";
+  return dt.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+}
+function shortDay(d) {
+  const dt = new Date(d + "T12:00:00"), diff = Math.round((dt - today) / 864e5);
+  return diff === 0 ? "Tonight" : dt.toLocaleDateString(undefined, { weekday:"short" });
+}
+const tipTime = t => t ? new Date(t).toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) : "";
+const longDate = d => new Date(d + "T12:00:00").toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+
+// ---------- distributions (negative binomial for counts, normal for minutes) ----------
 function erf(x) {  // Abramowitz-Stegun 7.1.26
   const s = Math.sign(x); x = Math.abs(x);
   const t = 1 / (1 + 0.3275911 * x);
-  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
-  return s * y;
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x));
 }
 function dist(stat, mu, param) {
   if (stat === "min") {
     const cdf = x => 0.5 * (1 + erf((x - mu) / (param * Math.SQRT2)));
-    return { over: L => 1 - cdf(L), under: L => cdf(L), push: () => 0,
-             q: p => { let lo = 0, hi = 60; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; cdf(m) < p ? lo = m : hi = m; } return lo; } };
+    const q = p => { let lo = 0, hi = 60; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; cdf(m) < p ? lo = m : hi = m; } return lo; };
+    return { over:L => 1 - cdf(L), under:L => cdf(L), push:() => 0, q,
+             bins() { const out = []; for (let k = Math.max(0, Math.floor(q(.005))); k <= Math.ceil(q(.995)); k++) out.push({ k, p:cdf(k + .5) - cdf(k - .5) }); return out; } };
   }
   const n = 1 / param, pr = n / (n + Math.max(mu, 1e-6));
-  const pmf = [Math.exp(n * Math.log(pr))];
-  const kmax = Math.ceil(mu * 4 + 40);
+  const pmf = [Math.exp(n * Math.log(pr))], kmax = Math.ceil(mu * 4 + 40);
   for (let k = 0; k < kmax; k++) pmf.push(pmf[k] * (k + n) / (k + 1) * (1 - pr));
-  const cdf = [];
-  pmf.reduce((a, v, i) => (cdf[i] = a + v), 0);
+  const cdf = []; pmf.reduce((a, v, i) => (cdf[i] = a + v), 0);
   const C = k => k < 0 ? 0 : k >= cdf.length ? 1 : cdf[k];
-  return {
-    over: L => 1 - C(Math.floor(L)),
-    under: L => C(Math.ceil(L) - 1),
-    push: L => Number.isInteger(L) ? (pmf[L] || 0) : 0,
-    q: p => { const i = cdf.findIndex(c => c >= p); return i < 0 ? kmax : i; },
+  const q = p => { const i = cdf.findIndex(c => c >= p); return i < 0 ? kmax : i; };
+  return { over:L => 1 - C(Math.floor(L)), under:L => C(Math.ceil(L) - 1), push:L => Number.isInteger(L) ? (pmf[L] || 0) : 0, q,
+           bins() { const out = []; for (let k = q(.005); k <= q(.995); k++) out.push({ k, p:pmf[k] }); return out; } };
+}
+const distOf = (p, s) => dist(s, p.proj[s][0], p.proj[s][1]);
+const american = p => p <= 0 || p >= 1 ? "–" : p >= .5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
+const implied = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
+const payout = o => o > 0 ? o : 10000 / -o;  // profit on a $100 stake
+const defaultLine = (p, s) => Math.floor(p.l10[s] ?? p.proj[s][0]) + 0.5;
+
+// ---------- tooltip (any element with data-tip) ----------
+const tip = $("tip");
+function moveTip(e) {
+  const t = e.target.closest?.("[data-tip]");
+  if (!t) { tip.classList.remove("show"); return; }
+  tip.innerHTML = t.dataset.tip;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY - r.height - 12;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y < 8) y = e.clientY + 18;
+  tip.style.left = x + "px"; tip.style.top = y + "px"; tip.classList.add("show");
+}
+document.addEventListener("pointermove", moveTip);
+document.addEventListener("pointerdown", moveTip);
+document.addEventListener("scroll", () => tip.classList.remove("show"), { passive:true });
+
+// ---------- svg helpers ----------
+function bar(x, y, w, h) {  // rounded top, square baseline
+  if (h <= 0) return "";
+  const r = Math.min(4, w / 2, h);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
+}
+
+// Probability of every outcome, split at the line.
+function distChart(stat, D, line) {
+  const bins = D.bins(), W = 680, H = 220, pl = 6, pr = 6, pt = 26, pb = 26;
+  const n = bins.length, bw = (W - pl - pr) / n, k0 = bins[0].k, maxp = Math.max(...bins.map(b => b.p));
+  const x = k => pl + (k - k0) * bw, xv = v => pl + (v - k0 + .5) * bw, y = p => pt + (1 - p / maxp) * (H - pt - pb);
+  const gap = bw > 6 ? 2 : 1, step = Math.max(1, Math.ceil(n / 9));
+  let marks = "", hits = "", ticks = "";
+  bins.forEach((b, i) => {
+    const over = b.k > line, top = y(b.p);
+    marks += `<path class="grow" style="animation-delay:${i * 8}ms" d="${bar(x(b.k) + gap / 2, top, bw - gap, H - pb - top)}" fill="var(${over ? "--over" : "--under"})"/>`;
+    hits += `<rect x="${x(b.k)}" y="${pt}" width="${bw}" height="${H - pt - pb}" fill="transparent"
+      data-tip="<b>${b.k} ${SHORT[stat]}</b> · ${pct(b.p, 1)} chance<br>${over ? "Over" : "Under"} ${line}"/>`;
+    if (i % step === 0) ticks += `<text x="${x(b.k) + bw / 2}" y="${H - 8}" text-anchor="middle">${b.k}</text>`;
+  });
+  const lx = Math.min(Math.max(xv(line), pl), W - pr);
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Chance of each ${SHORT[stat]} outcome">
+    ${marks}<line x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}" stroke="var(--ink)" stroke-width="1"/>
+    <line x1="${lx}" x2="${lx}" y1="${pt - 8}" y2="${H - pb}" stroke="var(--ink)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text class="lbl" x="${lx}" y="${pt - 12}" text-anchor="middle">LINE ${line}</text>${ticks}${hits}</svg></div>`;
+}
+
+// Recent games as bars, with the projection (and optionally a line) as a rule.
+function recentChart(games, stat, proj, line) {
+  const W = 680, H = 200, pl = 28, pr = 8, pt = 18, pb = 24, n = games.length;
+  const vals = games.map(g => g.v ?? 0), max = Math.max(...vals, proj || 0, line || 0, 1) * 1.08;
+  const bw = (W - pl - pr) / n, y = v => pt + (1 - v / max) * (H - pt - pb);
+  const ticks = [0, max / 2, max].map(v => Math.round(v));
+  let out = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule)" stroke-width="1"/>
+    <text x="${pl - 6}" y="${y(t) + 4}" text-anchor="end">${t}</text>`).join("");
+  games.forEach((g, i) => {
+    const top = y(g.v ?? 0), cls = line != null ? (g.v > line ? "--over" : "--under") : "--ink-2";
+    out += `<path class="grow" style="animation-delay:${i * 18}ms" d="${bar(pl + i * bw + 2, top, bw - 4, H - pb - top)}" fill="var(${cls})"/>
+      <rect x="${pl + i * bw}" y="${pt}" width="${bw}" height="${H - pt - pb}" fill="transparent"
+        data-tip="<b>${fmt(g.v, stat === "min" ? 1 : 0)} ${SHORT[stat]}</b><br>${esc(g.date)} ${g.home ? "vs" : "@"} ${esc(g.opp)}"/>`;
+  });
+  const rule = (v, label, dash) => v == null ? "" : `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--ink)" stroke-width="2" ${dash ? 'stroke-dasharray="5 4"' : ""}/>
+    <text class="lbl" x="${W - pr}" y="${y(v) - 5}" text-anchor="end">${label}</text>`;
+  out += `<line x1="${pl}" x2="${W - pr}" y1="${H - pb}" y2="${H - pb}" stroke="var(--ink)"/>`;
+  out += rule(proj, `NEXT GAME ${fmt(proj)}`, true) + (line != null ? rule(line, `LINE ${line}`, false) : "");
+  out += `<text x="${pl}" y="${H - 6}">${esc(games[0]?.date || "")}</text><text x="${W - pr}" y="${H - 6}" text-anchor="end">${esc(games[n - 1]?.date || "")}</text>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Last ${n} games">${out}</svg></div>`;
+}
+
+// Model probability vs how often it actually happened.
+function calibChart(cal) {
+  const W = 420, H = 340, pl = 40, pr = 12, pt = 12, pb = 36;
+  const x = v => pl + v * (W - pl - pr), y = v => pt + (1 - v) * (H - pt - pb);
+  let out = [0, .25, .5, .75, 1].map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule)"/>
+    <text x="${pl - 6}" y="${y(t) + 4}" text-anchor="end">${t * 100}%</text>
+    <text x="${x(t)}" y="${H - 18}" text-anchor="middle">${t * 100}%</text>`).join("");
+  out += `<line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" stroke="var(--muted)" stroke-dasharray="4 4"/>
+    <text x="${x(.9)}" y="${y(.9) + 18}" text-anchor="end">perfect</text>`;
+  out += cal.map(c => `<circle cx="${x(c.p)}" cy="${y(c.hit)}" r="${4 + Math.min(4, Math.sqrt(c.n) / 40)}" fill="var(--over)" stroke="var(--card)" stroke-width="2"/>
+    <circle cx="${x(c.p)}" cy="${y(c.hit)}" r="14" fill="transparent" data-tip="Model said <b>${pct(c.p, 1)}</b><br>Over hit <b>${pct(c.hit, 1)}</b><br>${c.n.toLocaleString()} games"/>`).join("");
+  out += `<text x="${(pl + W - pr) / 2}" y="${H - 2}" text-anchor="middle">MODEL'S P(OVER)</text>
+    <text transform="translate(11 ${(pt + H - pb) / 2}) rotate(-90)" text-anchor="middle">ACTUALLY HIT</text>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Calibration">${out}</svg></div>`;
+}
+
+// ---------- player files (lazy, cached) ----------
+const files = new Map();
+const getFile = id => files.get(id) || files.set(id, fetch(`players/${id}.json`).then(r => r.json())).get(id);
+const fileRows = f => f.log.map(r => Object.fromEntries(f.cols.map((c, i) => [c, r[i]])));
+
+// ---------- navigation ----------
+$("nav").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
+function go(tab) {
+  S.tab = tab;
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
+  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord })[tab]();
+  history.replaceState(null, "", "#" + tab);
+}
+function openDesk(pid, stat, line) {
+  S.desk.pid = pid; S.desk.stat = stat; S.desk.line = line ?? null; go("desk");
+  scrollTo({ top:0, behavior:"smooth" });
+}
+function openFile(id) { S.file.id = id; S.file.all = false; go("files"); scrollTo({ top:0, behavior:"smooth" }); }
+
+// ---------- theme ----------
+const THEMES = ["auto", "light", "dark"];
+function applyTheme(t) {
+  if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  $("theme").textContent = { auto:"Auto", light:"Day ed.", dark:"Night ed." }[t];
+}
+let theme = store.get("theme") || "auto"; applyTheme(theme);
+$("theme").onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set("theme", theme); applyTheme(theme); };
+
+// ==================== TONIGHT'S SLATE ====================
+function renderSlate() {
+  const el = $("tab-slate");
+  if (!P.games.length) { el.innerHTML = `<p class="deck">No games on the schedule. Check back closer to the next game day.</p>`; return; }
+  const g = P.games.find(x => x.game_id === S.game) || P.games[0]; S.game = g.game_id;
+  const fav = g.home_spread == null ? "" : g.home_spread <= 0 ? `${g.home} −${Math.abs(g.home_spread)}` : `${g.away} −${g.home_spread}`;
+  const stats = GROUPS[S.group];
+  const team = code => {
+    let ps = P.players.filter(p => p.game_id === g.game_id && p.team === code);
+    if (!S.showOut) ps = ps.filter(p => !p.likely_out);
+    ps.sort((a, b) => a.likely_out - b.likely_out || b.proj.min[0] - a.proj.min[0]);
+    return `<div><h3 class="sub">${code}<small>${code === g.home ? "Home" : "Away"} · ${ps.length} players</small></h3>
+      <div class="scroll"><table class="agate stack"><tr><th>Player</th><th>Min</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>
+      ${ps.map(p => `<tr class="click ${p.likely_out ? "dim" : ""}" data-pid="${p.id}">
+        <td><span class="pname">${esc(p.name)}</span>${p.likely_out ? '<span class="tag out">Likely out</span>' : ""}</td>
+        <td>${fmt(p.proj.min[0], 0)}<span class="minbar"><i style="width:${Math.min(100, p.proj.min[0] / 40 * 100)}%"></i></span></td>
+        ${stats.map(s => { const d = p.proj[s][0] - (p.l10[s] ?? p.proj[s][0]);
+          return `<td data-tip="${SHORT[s]}: projected <b>${fmt(p.proj[s][0])}</b><br>Last 10: ${fmt(p.l10[s])} · Season: ${fmt(p.sea[s])}">
+            <span class="proj">${fmt(p.proj[s][0])}</span><span class="delta">${Math.abs(d) < .05 ? "" : (d > 0 ? "▲" : "▼") + fmt(Math.abs(d))}</span></td>`; }).join("")}
+      </tr>`).join("")}</table></div></div>`;
   };
-}
-const american = p => p <= 0 || p >= 1 ? "–" : p >= 0.5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
-const impliedFromAmerican = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
-
-// ---- tabs ----
-document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
-function showTab(t) {
-  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  document.querySelectorAll("section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + t));
-}
-
-// ---- next games ----
-let curGame = null, statSet = "main";
-const STATSETS = { main: ["min","pts","reb","ast","fg3m","pra"], combos: ["pra","pr","pa","ra","stocks"],
-                   other: ["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
-function renderGames() {
-  $("gamechips").innerHTML = P.games.map(g =>
-    `<button data-g="${g.game_id}" class="${g.game_id === curGame ? "on" : ""}">${fmtDate(g.date).split(",")[0]} · ${g.away} @ ${g.home}</button>`).join("");
-  $("gamechips").querySelectorAll("button").forEach(b => b.onclick = () => { curGame = b.dataset.g; renderGames(); });
-  $("statchips").innerHTML = Object.keys(STATSETS).map(k =>
-    `<button data-s="${k}" class="${k === statSet ? "on" : ""}">${{main:"Main",combos:"Combos",other:"Other"}[k]}</button>`).join("");
-  $("statchips").querySelectorAll("button").forEach(b => b.onclick = () => { statSet = b.dataset.s; renderGames(); });
-
-  const g = P.games.find(x => x.game_id === curGame);
-  const stats = STATSETS[statSet];
-  const sp = g.home_spread == null ? "" : ` · Elo line: ${g.home_spread <= 0 ? g.home : g.away} −${Math.abs(g.home_spread)}`;
-  let html = `<p class="small">${fmtDate(g.date)}${sp}. Projection = model mean; small grey number = last-10 average.</p>`;
-  for (const team of [g.away, g.home]) {
-    const ps = P.players.filter(p => p.game_id === g.game_id && p.team === team);
-    if (!ps.length) continue;
-    html += `<h2>${team}</h2><div class="scroll"><table><tr><th>Player</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>` +
-      ps.map(p => `<tr><td><a href="#" data-line="${p.id}">${esc(p.name)}</a>${p.likely_out ? '<span class="out">likely out</span>' : ""}</td>` +
-        stats.map(s => `<td>${fmt(p.proj[s][0])} <span class="sub">${fmt(p.l10[s])}</span></td>`).join("") + "</tr>").join("") +
-      "</table></div>";
-  }
-  $("gametables").innerHTML = html;
-  $("gametables").querySelectorAll("[data-line]").forEach(a => a.onclick = e => {
-    e.preventDefault(); $("lp").value = a.dataset.line; $("ll").dataset.auto = "1"; showTab("line"); renderLine();
-  });
-}
-
-// ---- line checker ----
-function renderLine() {
-  const p = P.players.find(x => x.id === $("lp").value);
-  const s = $("ls").value;
-  if (!p) return;
-  const [mu, param] = p.proj[s];
-  const D = dist(s, mu, param);
-  if ($("ll").dataset.auto !== "0" || $("ll").value === "") { $("ll").value = (Math.floor(p.l10[s] ?? mu) + 0.5).toFixed(1); }
-  const L = parseFloat($("ll").value);
-  const over = D.over(L), under = D.under(L), push = D.push(L);
-  const odds = parseFloat($("lo").value);
-  let edge = "";
-  if (!isNaN(odds) && odds !== 0) {
-    const imp = impliedFromAmerican(odds);
-    const ev = over * (odds > 0 ? odds / 100 : 100 / -odds) - under;  // per 1 unit staked on the over
-    edge = `<div class="tile"><label>Over at ${odds > 0 ? "+" : ""}${odds}</label><div class="v ${ev > 0 ? "pos" : "neg"}">${ev > 0 ? "+" : ""}${(ev * 100).toFixed(1)}%</div>
-      <div class="small">expected return per bet · book implies ${pct(imp)}</div></div>`;
-  }
-  $("lineout").innerHTML = `
-    <div class="bar"><span style="width:${over * 100}%"></span></div>
-    <div class="small" style="display:flex;justify-content:space-between"><span>Over ${pct(over)}</span><span>Under ${pct(under)}</span></div>
-    <div class="result">
-      <div class="tile"><label>P(over ${L})</label><div class="v">${pct(over)}</div><div class="small">fair odds ${american(over)}</div></div>
-      <div class="tile"><label>P(under ${L})</label><div class="v">${pct(under)}</div><div class="small">fair odds ${american(under)}${push ? ` · push ${pct(push)}` : ""}</div></div>
-      <div class="tile"><label>Projection</label><div class="v">${fmt(mu)}</div><div class="small">80% range ${fmt(D.q(0.1), 0)}–${fmt(D.q(0.9), 0)} · median ${fmt(D.q(0.5), 0)}</div></div>
-      <div class="tile"><label>Recent</label><div class="v">${fmt(p.l10[s])}</div><div class="small">last 10 · season ${fmt(p.sea[s])}</div></div>
-      ${edge}
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">The slate</p><h2 class="head">Next game for all 30 teams</h2>
+      <p class="deck">Projections for every rotation player. ▲▼ shows how the projection compares with the player's last 10 games. Tap a player to price a line.</p></div>
+    <div class="slate" id="slate">${P.games.map(x => `<button class="ticket ${x.game_id === g.game_id ? "on" : ""}" data-g="${x.game_id}">
+        <div class="day">${shortDay(x.date)}${x.tip ? " · " + tipTime(x.tip) : ""}</div>
+        <div class="match">${x.away}<em>@</em>${x.home}</div>
+        <div class="line">${x.home_spread == null ? "&nbsp;" : "Elo: " + (x.home_spread <= 0 ? `${x.home} −${Math.abs(x.home_spread)}` : `${x.away} −${x.home_spread}`)}</div>
+      </button>`).join("")}</div>
+    <div class="gamehead">
+      <div><p class="kicker">${dayLabel(g.date)}${g.tip ? " · " + tipTime(g.tip) : ""}</p>
+        <h2 class="head">${g.away} at ${g.home}</h2>
+        <p class="note" style="margin:6px 0 0">${longDate(g.date)}${fav ? ` · Elo favorite: ${fav}` : ""}</p></div>
+      <div class="controls" style="margin:0">
+        <div class="seg" id="groups">${Object.keys(GROUPS).map(k => `<button data-k="${k}" class="${k === S.group ? "on" : ""}">${{ main:"Main", combos:"Combos", more:"More" }[k]}</button>`).join("")}</div>
+        <label class="check"><input type="checkbox" id="showout" ${S.showOut ? "checked" : ""}> Show likely out</label>
+      </div>
     </div>
-    <p class="small">${esc(p.name)} (${p.team}) ${p.home ? "vs" : "@"} ${p.opp}, ${fmtDate(p.date)}.
-      ${p.likely_out ? '<b class="neg">Missed the team\'s last 3+ games: likely out.</b> ' : ""}
-      Projected ${fmt(p.proj.min[0])} minutes. Check injury news before betting; the model can't see it.</p>`;
+    <div class="teams">${team(g.away)}${team(g.home)}</div>
+  </div>`;
+  $("slate").onclick = e => { const b = e.target.closest(".ticket"); if (b) { S.game = b.dataset.g; renderSlate(); } };
+  $("groups").onclick = e => { const b = e.target.closest("button"); if (b) { S.group = b.dataset.k; renderSlate(); } };
+  $("showout").onchange = e => { S.showOut = e.target.checked; renderSlate(); };
+  el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => openDesk(tr.dataset.pid, GROUPS[S.group][0]));
+  const on = el.querySelector(".ticket.on"); on?.scrollIntoView({ block:"nearest", inline:"nearest" });
 }
 
-// ---- player pages ----
-let curPlayer = null, logSort = { col: 0, dir: -1 };
-async function loadPlayer(id) {
-  const d = await fetch(`players/${id}.json`).then(r => r.json());
-  curPlayer = d; logSort = { col: 0, dir: -1 };
-  renderPlayer();
-}
-function sparkline(vals, proj) {
-  const w = 600, h = 110, pad = 18, max = Math.max(...vals, proj || 0, 1);
-  const x = i => pad + i * (w - 2 * pad) / Math.max(vals.length - 1, 1), y = v => h - pad - v / max * (h - 2 * pad);
-  const pts = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="recent games">
-    ${proj != null ? `<line x1="${pad}" x2="${w - pad}" y1="${y(proj)}" y2="${y(proj)}" stroke="var(--bad)" stroke-dasharray="4 3"/>
-      <text x="${w - pad}" y="${y(proj) - 4}" text-anchor="end">next: ${proj.toFixed(1)}</text>` : ""}
-    <polyline points="${pts}" fill="none" stroke="var(--bar)" stroke-width="2"/>
-    ${vals.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--bar)"/>`).join("")}
-    <text x="${pad}" y="${h - 4}">last ${vals.length} games</text></svg>`;
-}
-let sparkStat = "pts";
-function renderPlayer() {
-  const d = curPlayer, cols = d.cols;
-  const nxt = P.players.find(p => p.id === d.id);
-  const ci = cols.indexOf(sparkStat);
-  const recent = d.log.slice(-20).map(r => r[ci] ?? 0);
-  const seasonCols = ["gp","min","pts","reb","ast","pra","fg3m","stl","blk","tov","fg_pct","fg3_pct","ft_pct"];
-  const logCols = cols.filter(c => c !== "home");
-  const rows = d.log.map(r => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
-  const sc = logCols[logSort.col];
-  rows.sort((a, b) => (a[sc] > b[sc] ? 1 : a[sc] < b[sc] ? -1 : 0) * logSort.dir);
-  const H = c => ({fg_pct:"FG%", fg3_pct:"3P%", ft_pct:"FT%", gp:"GP", plus_minus:"+/−", date:"Date", opp:"Opp", fg3a:"3PA", pf:"PF"}[c] || SHORT[c] || c.toUpperCase());
-  $("playerout").innerHTML = `
-    <h2>${esc(d.name)} · ${d.team}</h2>
-    ${nxt ? `<p class="small">Next: ${nxt.home ? "vs" : "@"} ${nxt.opp} ${fmtDate(nxt.date)} — projected ${fmt(nxt.proj.pts[0])} pts, ${fmt(nxt.proj.reb[0])} reb, ${fmt(nxt.proj.ast[0])} ast, ${fmt(nxt.proj.pra[0])} PRA.
-      <a href="#" id="toline">Check a line →</a></p>` : ""}
-    <div class="chips">${["pts","reb","ast","pra","fg3m","min"].map(s => `<button data-sp="${s}" class="${s === sparkStat ? "on" : ""}">${SHORT[s]}</button>`).join("")}</div>
-    ${sparkline(recent, nxt ? nxt.proj[sparkStat][0] : null)}
-    <h2>Season averages</h2>
-    <div class="scroll"><table><tr><th>Season</th><th>Team</th>${seasonCols.map(c => `<th>${H(c)}</th>`).join("")}</tr>
-      ${d.seasons.slice().reverse().map(s => `<tr><td>${s.season}</td><td>${s.team}</td>${seasonCols.map(c =>
-        `<td>${c.endsWith("pct") ? (s[c] == null ? "–" : (s[c] * 100).toFixed(1)) : c === "gp" ? s[c] : fmt(s[c])}</td>`).join("")}</tr>`).join("")}
-    </table></div>
-    <h2>Game log (${rows.length} games, click a header to sort)</h2>
-    <div class="scroll"><table id="logtable"><tr>${logCols.map((c, i) => `<th data-c="${i}">${H(c)}${i === logSort.col ? (logSort.dir < 0 ? " ↓" : " ↑") : ""}</th>`).join("")}</tr>
-      ${rows.map(r => `<tr>${logCols.map(c => `<td>${c === "opp" ? (r.home ? "vs " : "@ ") + r.opp : c === "date" ? r.date : c === "min" ? fmt(r[c]) : r[c] ?? "–"}</td>`).join("")}</tr>`).join("")}
-    </table></div>`;
-  $("playerout").querySelectorAll("[data-sp]").forEach(b => b.onclick = () => { sparkStat = b.dataset.sp; renderPlayer(); });
-  $("logtable").querySelectorAll("th").forEach(th => th.onclick = () => {
-    const c = +th.dataset.c; logSort = { col: c, dir: logSort.col === c ? -logSort.dir : -1 }; renderPlayer();
+// ==================== THE BOARD ====================
+function renderBoard() {
+  const b = S.board, el = $("tab-board");
+  const rows = P.players.filter(p => !(b.hideOut && p.likely_out) && p.l10[b.stat] != null).map(p => {
+    const line = defaultLine(p, b.stat), D = distOf(p, b.stat), over = D.over(line), under = D.under(line);
+    return { p, line, over, under, mu:p.proj[b.stat][0], gap:p.proj[b.stat][0] - p.l10[b.stat] };
   });
-  if (nxt) $("toline").onclick = e => { e.preventDefault(); $("lp").value = d.id; $("ls").value = sparkStat; $("ll").dataset.auto = "1"; showTab("line"); renderLine(); };
-}
-
-// ---- model accuracy ----
-function renderModel() {
-  if (!BT) { $("modelout").innerHTML = '<p class="small">No backtest yet. Run <code>python -m scripts.build_props --backtest</code>.</p>'; return; }
-  const ts = P.targets;
-  $("modelout").innerHTML = `
-    <p class="small">Walk-forward backtest over ${BT.seasons.join(", ")}: each season is predicted by a model trained only on earlier seasons.
-      MAE = average miss. Brier scores P(over) at a line of the player's last-10 average (lower is better; "coin" = always guessing the base rate).</p>
-    <div class="scroll"><table><tr><th>Market</th><th>Games</th><th>Model MAE</th><th>Season avg</th><th>Last 10</th><th>Recent form</th><th>Gain</th><th>Brier</th><th>Coin</th></tr>
-    ${ts.filter(t => BT.targets[t]).map(t => { const m = BT.targets[t]; const best = Math.min(m.mae_season_avg, m.mae_last10, m.mae_ewm5);
-      return `<tr><td>${P.labels[t]}</td><td>${m.n.toLocaleString()}</td><td><b>${fmt(m.mae, 2)}</b></td><td>${fmt(m.mae_season_avg, 2)}</td><td>${fmt(m.mae_last10, 2)}</td><td>${fmt(m.mae_ewm5, 2)}</td>
-        <td class="${best > m.mae ? "pos" : "neg"}">${((best - m.mae) / best * 100).toFixed(1)}%</td><td>${fmt(m.brier, 3)}</td><td>${fmt(m.brier_coin, 3)}</td></tr>`; }).join("")}
+  const key = { gap:r => -Math.abs(r.gap), over:r => -r.over, under:r => -r.under, proj:r => -r.mu }[b.sort];
+  rows.sort((a, c) => key(a) - key(c));
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">The board</p><h2 class="head">Where the model disagrees with recent form</h2>
+      <p class="deck">Every projected player in one market. The line shown is a stand-in: the player's last-10 average rounded to the half point. Open a row in the Line Desk and type your book's line for the real price.</p></div>
+    <div class="controls">
+      <div class="field" style="min-width:200px"><label>Market</label><select id="bstat">${P.targets.map(t => `<option value="${t}" ${t === b.stat ? "selected" : ""}>${P.labels[t]}</option>`).join("")}</select></div>
+      <div class="field"><label>Sort by</label><div class="seg" id="bsort">${[["gap", "Biggest gap"], ["over", "Over"], ["under", "Under"], ["proj", "Projection"]].map(([k, l]) => `<button data-k="${k}" class="${k === b.sort ? "on" : ""}">${l}</button>`).join("")}</div></div>
+      <label class="check" style="margin-top:18px"><input type="checkbox" id="bout" ${b.hideOut ? "checked" : ""}> Hide likely out</label>
+    </div>
+    <div class="scroll"><table class="agate">
+      <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th></tr>
+      ${rows.slice(0, 80).map(r => { const lean = r.over >= r.under ? ["o", "Over", r.over] : ["u", "Under", r.under];
+        return `<tr class="click" data-pid="${r.p.id}" data-line="${r.line}">
+        <td><span class="pname">${esc(r.p.name)}</span> <span class="muted">${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
+        <td class="muted">${r.p.home ? "vs" : "@"} ${r.p.opp} · ${dayLabel(r.p.date)}</td>
+        <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
+        <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
+        <td style="text-align:left"><span class="pbar" data-tip="Over ${pct(r.over, 1)} · Under ${pct(r.under, 1)}"><i style="width:${r.over * 100}%"></i></span><span class="lean ${lean[0]}">${lean[1]} ${pct(lean[2])}</span></td></tr>`; }).join("")}
     </table></div>
-    <h2>Calibration: points, P(over)</h2>
-    <p class="small">When the model says X%, how often did the over actually hit?</p>
-    <div class="scroll"><table><tr><th>Model said</th><th>Actually hit</th><th>Games</th></tr>
-      ${(BT.targets.pts?.calibration || []).map(c => `<tr><td>${pct(c.p)}</td><td>${pct(c.hit)}</td><td>${c.n.toLocaleString()}</td></tr>`).join("")}
-    </table></div>`;
+    <p class="note">Showing ${Math.min(80, rows.length)} of ${rows.length} players. Small gaps are noise: single-game stats swing a lot, so look for big disagreements.</p>
+  </div>`;
+  $("bstat").onchange = e => { b.stat = e.target.value; renderBoard(); };
+  $("bsort").onclick = e => { const x = e.target.closest("button"); if (x) { b.sort = x.dataset.k; renderBoard(); } };
+  $("bout").onchange = e => { b.hideOut = e.target.checked; renderBoard(); };
+  el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => openDesk(tr.dataset.pid, b.stat, +tr.dataset.line));
 }
 
-// ---- boot ----
+// ==================== LINE DESK ====================
+function renderDesk() {
+  const d = S.desk, el = $("tab-desk");
+  if (!P.players.length) { el.innerHTML = `<p class="deck">No projections right now.</p>`; return; }
+  if (!P.players.some(p => p.id === d.pid)) d.pid = [...P.players].sort((a, b) => b.proj.pra[0] - a.proj.pra[0])[0].id;
+  const p = P.players.find(x => x.id === d.pid);
+  if (d.line == null) d.line = defaultLine(p, d.stat);
+  const byGame = {};
+  [...P.players].sort((a, b) => a.name.localeCompare(b.name)).forEach(x => (byGame[x.game_id] ||= []).push(x));
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">The line desk</p><h2 class="head">Price any prop</h2>
+      <p class="deck">Pick a player and market, then type your sportsbook's line. Add the odds to see whether the bet has value.</p></div>
+    <div class="desk">
+      <div class="desk-form">
+        <div class="field"><label>Player</label><select id="dp">${P.games.map(g => byGame[g.game_id] ? `<optgroup label="${g.away} @ ${g.home} · ${dayLabel(g.date)}">
+          ${byGame[g.game_id].map(x => `<option value="${x.id}" ${x.id === d.pid ? "selected" : ""}>${esc(x.name)} (${x.team})${x.likely_out ? " – likely out" : ""}</option>`).join("")}</optgroup>` : "").join("")}</select></div>
+        <div class="field"><label>Market</label><select id="ds">${P.targets.map(t => `<option value="${t}" ${t === d.stat ? "selected" : ""}>${P.labels[t]}</option>`).join("")}</select></div>
+        <div class="field"><label>Line</label><div class="stepper"><button type="button" id="dminus" aria-label="Lower line">−</button>
+          <input id="dl" type="number" step="0.5" inputmode="decimal" value="${d.line}"><button type="button" id="dplus" aria-label="Raise line">+</button></div></div>
+        <div class="two">
+          <div class="field"><label>Over odds</label><input id="doo" inputmode="numeric" placeholder="-110" value="${esc(d.oOdds)}"></div>
+          <div class="field"><label>Under odds</label><input id="duo" inputmode="numeric" placeholder="-110" value="${esc(d.uOdds)}"></div>
+        </div>
+        <p class="note" style="margin:0">American odds, like −110 or +125. With both sides entered, the book's margin is removed before comparing.</p>
+      </div>
+      <div id="slip"></div>
+    </div></div>`;
+  $("dp").onchange = e => { d.pid = e.target.value; d.line = null; renderDesk(); };
+  $("ds").onchange = e => { d.stat = e.target.value; d.line = null; renderDesk(); };
+  const setLine = v => { if (!isNaN(v)) { d.line = Math.max(0, v); $("dl").value = d.line; renderSlip(); } };
+  $("dminus").onclick = () => setLine((+$("dl").value || 0) - .5);
+  $("dplus").onclick = () => setLine((+$("dl").value || 0) + .5);
+  $("dl").oninput = e => setLine(parseFloat(e.target.value));
+  $("doo").oninput = e => { d.oOdds = e.target.value; renderSlip(); };
+  $("duo").oninput = e => { d.uOdds = e.target.value; renderSlip(); };
+  renderSlip();
+}
+
+function renderSlip() {
+  const d = S.desk, p = P.players.find(x => x.id === d.pid), s = d.stat, L = d.line;
+  const D = distOf(p, s), over = D.over(L), under = D.under(L), push = D.push(L), mu = p.proj[s][0];
+  const oo = parseFloat(String(d.oOdds).replace("−", "-")), uo = parseFloat(String(d.uOdds).replace("−", "-"));
+  const has = o => !isNaN(o) && Math.abs(o) >= 100;
+  let ev = "";
+  if (has(oo) || has(uo)) {
+    const fairO = has(oo) && has(uo) ? implied(oo) / (implied(oo) + implied(uo)) : null;
+    const side = (o, pw, pl, name) => {
+      if (!has(o)) return "";
+      const e = pw * payout(o) - pl * 100, book = fairO == null ? implied(o) : (name === "Over" ? fairO : 1 - fairO);
+      return `<div><span class="muted">${name} ${o > 0 ? "+" : ""}${o}</span><br>
+        <b class="${e > 0 ? "pos" : "neg"}">${e > 0 ? "▲ +" : "▼ −"}$${Math.abs(e).toFixed(2)}</b> per $100 <span class="muted">· ${e > 0 ? "value" : "no value"}</span><br>
+        <span class="muted">Model ${pct(pw, 1)} vs book ${pct(book, 1)}${fairO == null ? "" : " (no-vig)"}</span></div>`;
+    };
+    ev = `<div class="ev">${side(oo, over, under, "Over")}${side(uo, under, over, "Under")}</div>`;
+  }
+  $("slip").innerHTML = `<div class="slip">
+    <div class="slip-top">
+      <div class="slip-who">${esc(p.name)} · ${p.team} ${p.home ? "vs" : "@"} ${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</div>
+      <div class="split">
+        <div class="side o"><div class="lab">Over ${L}</div><div class="big">${pct(over)}</div><div class="fair">Fair odds ${american(over)}</div></div>
+        <div class="side u"><div class="lab">Under ${L}</div><div class="big">${pct(under)}</div><div class="fair">Fair odds ${american(under)}${push > .001 ? ` · push ${pct(push, 1)}` : ""}</div></div>
+      </div>
+      <div class="splitbar" aria-hidden="true"><i style="width:${over * 100}%;background:var(--over)"></i><i style="width:${under * 100}%;background:var(--under)"></i></div>
+    </div>
+    <div class="slip-body">
+      ${p.likely_out ? `<div class="warn"><b>Likely out.</b> ${esc(p.name)} has missed their team's last 3+ games. Check the injury report before betting.</div>` : ""}
+      ${ev}
+      <div class="facts">
+        <div class="fact"><div class="k">Projection</div><div class="v">${fmt(mu)}</div><div class="s">median ${fmt(D.q(.5), 0)}</div></div>
+        <div class="fact"><div class="k">80% range</div><div class="v">${fmt(D.q(.1), 0)}–${fmt(D.q(.9), 0)}</div><div class="s">8 games in 10 land here</div></div>
+        <div class="fact"><div class="k">Last 10</div><div class="v">${fmt(p.l10[s])}</div><div class="s">season ${fmt(p.sea[s])}</div></div>
+        <div class="fact"><div class="k">Minutes</div><div class="v">${fmt(p.proj.min[0], 0)}</div><div class="s">projected</div></div>
+      </div>
+      <div class="legend"><span><i style="background:var(--over)"></i>Over ${L}</span><span><i style="background:var(--under)"></i>Under</span><span class="muted">Chance of each outcome</span></div>
+      ${distChart(s, D, L)}
+      <h3 class="sub" style="margin-top:18px">Recent games vs ${L}<small id="hitrate"></small></h3>
+      <div class="recent" id="recent"><span class="muted" style="font-weight:400">Loading…</span></div>
+      <p class="note">The model can't see injury news or tonight's starting lineups. Treat edges under ~5 points as noise.</p>
+    </div></div>`;
+  getFile(p.id).then(f => {
+    if (S.desk.pid !== p.id || S.desk.stat !== s || S.desk.line !== L) return;
+    const rows = fileRows(f), last = rows.slice(-10), season = rows.filter(r => r.date >= (f.seasons.at(-1)?.season.slice(0, 4) + "-08-01"));
+    const hit = last.filter(r => r[s] > L).length, sh = season.filter(r => r[s] > L).length;
+    $("hitrate").textContent = `Over in ${hit} of last ${last.length}` + (season.length ? ` · ${sh}/${season.length} this season` : "");
+    $("recent").innerHTML = last.map(r => `<span class="${r[s] > L ? "o" : "u"}" data-tip="${esc(r.date)} ${r.home ? "vs" : "@"} ${esc(r.opp)}<br>${fmt(r.min, 0)} min">${fmt(r[s], 0)}</span>`).join("")
+      + `<button class="more" style="margin:0 0 0 8px" id="tofile">Player file →</button>`;
+    $("tofile").onclick = () => openFile(p.id);
+  }).catch(() => { $("recent").innerHTML = `<span class="muted">No game log available.</span>`; });
+}
+
+// ==================== PLAYER FILES ====================
+function renderFiles() {
+  const el = $("tab-files");
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">Player files</p><h2 class="head">Every player since 2018–19</h2>
+      <p class="deck">Season averages, the full game log and recent form for ${INDEX.length.toLocaleString()} players.</p></div>
+    <div class="finder"><input class="search" id="q" placeholder="Search a player…" autocomplete="off" aria-label="Search players"><div class="sugg hidden" id="sugg"></div></div>
+    <div id="file"></div></div>`;
+  const q = $("q"), sugg = $("sugg");
+  let act = 0, hits = [];
+  const norm = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const draw = () => {
+    sugg.innerHTML = hits.map((h, i) => `<button data-id="${h[0]}" class="${i === act ? "act" : ""}">${esc(h[1])}<small>${h[2]} · ${h[3]}</small></button>`).join("");
+    sugg.classList.toggle("hidden", !hits.length);
+  };
+  q.oninput = () => {
+    const t = norm(q.value.trim()); act = 0;
+    hits = t ? INDEX.filter(h => norm(h[1]).includes(t)).sort((a, b) => norm(a[1]).startsWith(t) ? -1 : norm(b[1]).startsWith(t) ? 1 : 0).slice(0, 8) : [];
+    draw();
+  };
+  q.onkeydown = e => {
+    if (e.key === "ArrowDown") { act = Math.min(act + 1, hits.length - 1); draw(); e.preventDefault(); }
+    if (e.key === "ArrowUp") { act = Math.max(act - 1, 0); draw(); e.preventDefault(); }
+    if (e.key === "Enter" && hits[act]) { pick(hits[act][0]); }
+    if (e.key === "Escape") { hits = []; draw(); }
+  };
+  sugg.onclick = e => { const b = e.target.closest("button"); if (b) pick(b.dataset.id); };
+  const pick = id => { hits = []; draw(); q.value = ""; S.file.id = id; S.file.all = false; drawFile(); };
+  if (!S.file.id) S.file.id = [...P.players].sort((a, b) => b.proj.pts[0] - a.proj.pts[0])[0]?.id;
+  drawFile();
+}
+
+function drawFile() {
+  const id = S.file.id, box = $("file");
+  if (!id) return;
+  box.innerHTML = `<p class="note">Pulling the file…</p>`;
+  getFile(id).then(f => {
+    if (S.file.id !== id || S.tab !== "files") return;
+    const nxt = P.players.find(p => p.id === id), st = S.file.stat, rows = fileRows(f);
+    const recent = rows.slice(-20).map(r => ({ v:r[st], date:r.date, opp:r.opp, home:r.home }));
+    const seasonCols = ["gp", "min", "pts", "reb", "ast", "pra", "fg3m", "stl", "blk", "tov", "fg_pct", "fg3_pct", "ft_pct"];
+    const logCols = ["date", "opp", "min", "pts", "reb", "ast", "pra", "fg3m", "stl", "blk", "tov", "fgm", "fga", "fg3a", "ftm", "fta", "plus_minus"];
+    const H = c => ({ gp:"GP", fg_pct:"FG%", fg3_pct:"3P%", ft_pct:"FT%", plus_minus:"+/−", date:"Date", opp:"Opp", fg3a:"3PA" }[c] || SHORT[c] || c);
+    const so = S.file.sort;
+    const sorted = [...rows].sort((a, b) => (a[so.col] > b[so.col] ? 1 : a[so.col] < b[so.col] ? -1 : 0) * so.dir);
+    const shown = S.file.all ? sorted : sorted.slice(0, 25);
+    box.innerHTML = `<div class="reveal">
+      <div class="profile"><div><div class="nm">${esc(f.name)}</div></div>
+        <div class="tm">${esc(f.team)}<span class="muted" style="font:500 13px var(--ui);letter-spacing:.06em"> · ${f.seasons.length} seasons · ${rows.length} games</span></div></div>
+      ${nxt ? `<p class="note">Next: ${nxt.home ? "vs" : "@"} ${nxt.opp}, ${dayLabel(nxt.date)}${nxt.likely_out ? ' <span class="tag out">Likely out</span>' : ""}</p>
+        <div class="tiles">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<div class="fact"><div class="k">${SHORT[s]}</div><div class="v">${fmt(nxt.proj[s][0])}</div><div class="s">L10 ${fmt(nxt.l10[s])}</div></div>`).join("")}</div>` : `<p class="note">No game on the schedule this week.</p>`}
+      <div>
+        <h3 class="sub">Last ${recent.length} games<small><span class="seg" id="fstat">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<button data-s="${s}" class="${s === st ? "on" : ""}">${SHORT[s]}</button>`).join("")}</span></small></h3>
+        ${recentChart(recent, st, nxt ? nxt.proj[st][0] : null, null)}
+        ${nxt ? `<button class="more" id="fdesk">Price a ${SHORT[st]} line →</button>` : ""}
+      </div>
+      <div><h3 class="sub">Season by season<small>per game</small></h3>
+        <div class="scroll"><table class="agate"><tr><th>Season</th><th>Team</th>${seasonCols.map(c => `<th>${H(c)}</th>`).join("")}</tr>
+        ${[...f.seasons].reverse().map(s => `<tr><td><b>${s.season}</b></td><td>${esc(s.team)}</td>${seasonCols.map(c =>
+          `<td>${c.endsWith("pct") ? (s[c] == null ? "–" : (s[c] * 100).toFixed(1)) : c === "gp" ? s[c] : fmt(s[c])}</td>`).join("")}</tr>`).join("")}</table></div></div>
+      <div><h3 class="sub">Game log<small>tap a header to sort</small></h3>
+        <div class="scroll"><table class="agate" id="flog"><tr>${logCols.map(c => `<th class="sortable" data-c="${c}">${H(c)}${c === so.col ? (so.dir < 0 ? " ↓" : " ↑") : ""}</th>`).join("")}</tr>
+        ${shown.map(r => `<tr>${logCols.map(c => `<td>${c === "opp" ? (r.home ? "vs " : "@ ") + esc(r.opp) : c === "date" ? esc(r.date) : c === "min" ? fmt(r[c], 0) : r[c] ?? "–"}</td>`).join("")}</tr>`).join("")}</table></div>
+        ${rows.length > 25 ? `<button class="more" id="fall">${S.file.all ? "Show fewer" : `Show all ${rows.length} games`}</button>` : ""}</div>
+    </div>`;
+    $("fstat").onclick = e => { const b = e.target.closest("button"); if (b) { S.file.stat = b.dataset.s; drawFile(); } };
+    $("flog").querySelector("tr").onclick = e => { const th = e.target.closest("th"); if (!th) return; const c = th.dataset.c;
+      S.file.sort = { col:c, dir:so.col === c ? -so.dir : -1 }; drawFile(); };
+    if ($("fall")) $("fall").onclick = () => { S.file.all = !S.file.all; drawFile(); };
+    if ($("fdesk")) $("fdesk").onclick = () => openDesk(id, st);
+  }).catch(() => { box.innerHTML = `<p class="note">Couldn't load that player's file.</p>`; });
+}
+
+// ==================== TRACK RECORD ====================
+function renderRecord() {
+  const el = $("tab-record");
+  if (!BT) { el.innerHTML = `<p class="deck">No backtest published yet. Run <code>python -m scripts.build_props --backtest</code>.</p>`; return; }
+  const T = BT.targets, best = m => Math.min(m.mae_season_avg, m.mae_last10, m.mae_ewm5);
+  const gain = m => (best(m) - m.mae) / best(m);
+  const st = S.rec.stat;
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">Track record</p><h2 class="head">How it did on ${T.pts.n.toLocaleString()} past games</h2>
+      <p class="deck">Seasons ${BT.seasons[0]} through ${BT.seasons.at(-1)}, each predicted only from earlier seasons. The model is compared with three things a bettor might use instead: the season average, the last-10 average and recent form.</p></div>
+    <div class="scoreline">
+      <div class="fact"><div class="k">Points, avg miss</div><div class="v">${fmt(T.pts.mae, 2)}</div><div class="s">best simple avg ${fmt(best(T.pts), 2)}</div></div>
+      <div class="fact"><div class="k">PRA, avg miss</div><div class="v">${fmt(T.pra.mae, 2)}</div><div class="s">best simple avg ${fmt(best(T.pra), 2)}</div></div>
+      <div class="fact"><div class="k">Minutes, avg miss</div><div class="v">${fmt(T.min.mae, 2)}</div><div class="s">best simple avg ${fmt(best(T.min), 2)}</div></div>
+      <div class="fact"><div class="k">Markets beating baseline</div><div class="v">${P.targets.filter(t => T[t] && gain(T[t]) > 0).length}/${P.targets.filter(t => T[t]).length}</div><div class="s">by average miss</div></div>
+    </div>
+    <div><h3 class="sub">Every market<small>lower miss is better</small></h3>
+      <div class="scroll"><table class="agate"><tr><th>Market</th><th>Model miss</th><th>Season avg</th><th>Last 10</th><th>Recent form</th><th>Gain</th><th>Brier</th><th>Coin flip</th></tr>
+      ${P.targets.filter(t => T[t]).map(t => { const m = T[t], g = gain(m);
+        return `<tr class="click" data-t="${t}"><td><span class="pname">${P.labels[t]}</span></td><td class="proj">${fmt(m.mae, 2)}</td><td>${fmt(m.mae_season_avg, 2)}</td><td>${fmt(m.mae_last10, 2)}</td><td>${fmt(m.mae_ewm5, 2)}</td>
+          <td class="${g > 0 ? "pos" : "neg"}">${g > 0 ? "▲" : "▼"} ${fmt(Math.abs(g) * 100)}%</td><td>${fmt(m.brier, 3)}</td><td class="muted">${fmt(m.brier_coin, 3)}</td></tr>`; }).join("")}</table></div>
+      <p class="note">Brier scores the over/under probability at a line of the player's last-10 average; lower is better, and "coin flip" is what you'd get by always guessing the usual over rate. Tap a market to see its calibration.</p></div>
+    <div><h3 class="sub">Can you trust the percentages?<small>${P.labels[st]}</small></h3>
+      <div class="calib">${calibChart(T[st].calibration)}
+        <div><p class="note">Each dot groups games by what the model said the over chance was. Dots on the dashed line mean the percentages are honest: when it says 60%, the over hits about 60% of the time. Bigger dots stand for more games.</p>
+          <table class="agate"><tr><th>Model said</th><th>Over hit</th><th>Games</th></tr>
+          ${T[st].calibration.map(c => `<tr><td>${pct(c.p, 1)}</td><td>${pct(c.hit, 1)}</td><td>${c.n.toLocaleString()}</td></tr>`).join("")}</table></div></div></div>
+  </div>`;
+  el.querySelectorAll("tr[data-t]").forEach(tr => tr.onclick = () => { S.rec.stat = tr.dataset.t; renderRecord(); });
+}
+
+// ==================== BOOT ====================
 Promise.all([
   fetch("props.json").then(r => r.json()),
   fetch("props_backtest.json").then(r => r.ok ? r.json() : null).catch(() => null),
-  fetch("players/index.json").then(r => r.json()),
+  fetch("players/index.json").then(r => r.ok ? r.json() : []).catch(() => []),
 ]).then(([props, bt, index]) => {
   P = props; BT = bt; INDEX = index;
-  const pm = bt?.targets?.pts, pram = bt?.targets?.pra;
-  $("meta").textContent = `Season ${P.season} · updated ${new Date(P.built_at).toLocaleString()} · ${P.players.length} players projected` +
-    (pm ? ` · backtest MAE: pts ${pm.mae.toFixed(2)}, PRA ${pram.mae.toFixed(2)}` : "");
-  curGame = P.games[0]?.game_id;
-  if (curGame) renderGames(); else $("gametables").innerHTML = '<p class="meta">No upcoming games.</p>';
-
-  $("lp").innerHTML = P.players.slice().sort((a, b) => a.name.localeCompare(b.name))
-    .map(p => `<option value="${p.id}">${esc(p.name)} (${p.team} ${p.home ? "vs" : "@"} ${p.opp})</option>`).join("");
-  $("ls").innerHTML = P.targets.map(t => `<option value="${t}">${P.labels[t]}</option>`).join("");
-  $("lp").onchange = $("ls").onchange = () => { $("ll").dataset.auto = "1"; renderLine(); };
-  $("ll").oninput = () => { $("ll").dataset.auto = "0"; renderLine(); };
-  $("lo").oninput = renderLine;
-  renderLine();
-
-  $("plist").innerHTML = INDEX.map(p => `<option value="${esc(p[1])} · ${p[2]} (${p[3]})">`).join("");
-  $("search").onchange = () => {
-    const hit = INDEX.find(p => `${p[1]} · ${p[2]} (${p[3]})` === $("search").value)
-             || INDEX.find(p => p[1].toLowerCase().includes($("search").value.toLowerCase()));
-    if (hit) loadPlayer(hit[0]);
-  };
-  renderModel();
-}).catch(e => { $("meta").textContent = "Couldn't load projections: " + e; });
+  const built = new Date(P.built_at);
+  $("dateline").innerHTML = `<span>Season <b>${esc(P.season)}</b></span>
+    <span>${today.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric", year:"numeric" })}</span>
+    <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
+    <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
+  const h = location.hash.slice(1);
+  go(["slate", "board", "desk", "files", "record"].includes(h) ? h : "slate");
+}).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
 </script>
 </body>
 </html>
