@@ -81,6 +81,10 @@ The line for each pick is the half point where recent form alone is closest to 5
 
 `site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js` and `web/index.html`. The logos are the teams' trademarks, shown here only to identify them.
 
+## Player photos
+
+Headshots load in the visitor's browser straight from the NBA's image server (`cdn.nba.com/headshots/...`), keyed by the same player ids the data uses, so nothing is stored in the repo and new players appear automatically. If a photo is missing or the server refuses it, the player's initials show instead.
+
 ## Accounts (Firebase)
 
 Sign in with Google or email/password, save bets from the Line Desk, and the **My Bets** tab grades them against the box scores once games are final (record, units, ROI, and the model's predicted hit rate vs the real one). Code: `web/src/account.js` (Firebase), `web/src/grade.js` (grading). Without a config the site works normally and the sign-in button explains it isn't set up.

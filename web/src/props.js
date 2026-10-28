@@ -12,6 +12,12 @@ const DARK_LOGOS = new Set(["OKC", "PHI", "TOR", "UTA"]);
 const logo = t => !/^[A-Z]{3}$/.test(t || "") ? "" : DARK_LOGOS.has(t)
   ? `<img class="logo has-d" src="logos/${t}.png" alt="" loading="lazy"><img class="logo d" src="logos/dark/${t}.png" alt="" loading="lazy">`
   : `<img class="logo" src="logos/${t}.png" alt="" loading="lazy">`;
+// Headshots load straight from the NBA's image server by player id. If one is missing,
+// or the server refuses it, the image is dropped and the player's initials show instead.
+const initials = n => String(n || "").split(/\s+/).filter(w => /^[A-Za-zÀ-ÿ]/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const face = (id, name, size = "") => `<span class="face ${size}" data-i="${esc(initials(name))}" aria-hidden="true"><img
+  src="https://cdn.nba.com/headshots/nba/latest/${size === "lg" ? "1040x760" : "260x190"}/${esc(id)}.png" alt="" loading="lazy"></span>`;
+document.addEventListener("error", e => { if (e.target.matches?.(".face img")) e.target.remove(); }, true);
 const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
                  more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
 let P, BT, PK = null, INDEX = [];
@@ -209,7 +215,7 @@ function renderSlate() {
     return `<div><h3 class="sub"><span>${logo(code)} ${code}</span><small>${code === g.home ? "Home" : "Away"} · ${ps.length} players</small></h3>
       <div class="scroll"><table class="agate stack"><tr><th>Player</th><th>Min</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>
       ${ps.map(p => `<tr class="click ${p.likely_out ? "dim" : ""}" data-pid="${p.id}">
-        <td><span class="pname">${esc(p.name)}</span>${p.likely_out ? '<span class="tag out">Likely out</span>' : ""}</td>
+        <td>${face(p.id, p.name)}<span class="pname">${esc(p.name)}</span>${p.likely_out ? '<span class="tag out">Likely out</span>' : ""}</td>
         <td>${fmt(p.proj.min[0], 0)}<span class="minbar"><i style="width:${Math.min(100, p.proj.min[0] / 40 * 100)}%"></i></span></td>
         ${stats.map(s => { const d = p.proj[s][0] - (p.l10[s] ?? p.proj[s][0]);
           return `<td data-tip="${SHORT[s]}: projected <b>${fmt(p.proj[s][0])}</b><br>Last 10: ${fmt(p.l10[s])} · Season: ${fmt(p.sea[s])}">
@@ -263,7 +269,7 @@ function renderBoard() {
       <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th><th><span class="sr">Parlay</span></th></tr>
       ${rows.slice(0, 80).map(r => { const lean = r.over >= r.under ? ["o", "Over", r.over] : ["u", "Under", r.under];
         return `<tr class="click" data-pid="${r.p.id}" data-line="${r.line}">
-        <td><span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
+        <td>${face(r.p.id, r.p.name)}<span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
         <td class="muted">${r.p.home ? "vs" : "@"} ${logo(r.p.opp)}${r.p.opp} · ${dayLabel(r.p.date)}</td>
         <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
         <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
@@ -381,7 +387,7 @@ function renderSlip() {
     </div>`;
   $("slip").innerHTML = `<div class="slip">
     <div class="slip-top">
-      <div class="slip-who">${esc(p.name)} · ${logo(p.team)}${p.team} ${p.home ? "vs" : "@"} ${logo(p.opp)}${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</div>
+      <div class="slip-who">${face(p.id, p.name, "md")}<span>${esc(p.name)} · ${logo(p.team)}${p.team} ${p.home ? "vs" : "@"} ${logo(p.opp)}${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</span></div>
       <div class="split">
         <div class="side o"><div class="lab">Over ${L}</div><div class="big">${pct(over)}</div><div class="fair">Fair ${oddsFmt === "x" ? "payout" : "odds"} ${fairOdds(over)}</div></div>
         <div class="side u"><div class="lab">Under ${L}</div><div class="big">${pct(under)}</div><div class="fair">Fair ${oddsFmt === "x" ? "payout" : "odds"} ${fairOdds(under)}${push > .001 ? ` · push ${pct(push, 1)}` : ""}</div></div>
@@ -468,7 +474,7 @@ function drawFile() {
     const sorted = [...rows].sort((a, b) => (a[so.col] > b[so.col] ? 1 : a[so.col] < b[so.col] ? -1 : 0) * so.dir);
     const shown = S.file.all ? sorted : sorted.slice(0, 25);
     box.innerHTML = `<div class="reveal">
-      <div class="profile"><div><div class="nm">${esc(f.name)}</div></div>
+      <div class="profile">${face(id, f.name, "lg")}<div><div class="nm">${esc(f.name)}</div></div>
         <div class="tm">${logo(f.team)} ${esc(f.team)}<span class="muted" style="font:500 13px var(--ui);letter-spacing:.06em"> · ${f.seasons.length} seasons · ${rows.length} games</span></div></div>
       ${nxt ? `<p class="note">Next: ${nxt.home ? "vs" : "@"} ${logo(nxt.opp)}${nxt.opp}, ${dayLabel(nxt.date)}${nxt.likely_out ? ' <span class="tag out">Likely out</span>' : ""}</p>
         <div class="tiles">${["pts", "reb", "ast", "pra", "fg3m", "min"].map(s => `<div class="fact"><div class="k">${SHORT[s]}</div><div class="v">${fmt(nxt.proj[s][0])}</div><div class="s">L10 ${fmt(nxt.l10[s])}</div></div>`).join("")}</div>` : `<p class="note">No game on the schedule this week.</p>`}
@@ -754,7 +760,7 @@ function renderParlay() {
   el.innerHTML = `<div class="parlay">
     <h3 class="sub" style="margin-top:4px">Parlay<small>${legs.length} leg${legs.length > 1 ? "s" : ""}</small></h3>
     <ol class="legs">${legs.map((l, i) => `<li>
-      <div><b>${esc(l.name)}</b> <span class="muted">${logo(l.team)}${l.team} ${l.home ? "vs" : "@"} ${logo(l.opp)}${l.opp}</span><br>
+      ${face(l.pid, l.name)}<div><b>${esc(l.name)}</b> <span class="muted">${logo(l.team)}${l.team} ${l.home ? "vs" : "@"} ${logo(l.opp)}${l.opp}</span><br>
         ${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || l.stat} <span class="muted">· ${o(l.odds)} · model ${pct(l.modelP)}</span></div>
       <button type="button" class="link" data-i="${i}" aria-label="Remove leg">Remove</button></li>`).join("")}</ol>
     ${legs.length < 2 ? `<p class="note" style="margin:0">Add at least one more leg.</p>` : `
@@ -832,12 +838,12 @@ function renderBets() {
               <td><span class="pname">Parlay</span> <span class="muted">${b.legs.length} legs</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${g.odds !== b.odds && g.status !== "push" ? `<span class="muted">paid at ${showOdds(g.odds)}</span>` : ""}</td>${tail}`
               + b.legs.map((l, i) => `<tr class="leg"><td class="muted">${esc(l.date)}</td>
-              <td><span class="pname">${esc(l.name)}</span> <span class="muted">${logo(l.team)}${esc(l.team)} ${l.home ? "vs" : "@"} ${logo(l.opp)}${esc(l.opp)}</span></td>
+              <td>${face(l.pid, l.name)}<span class="pname">${esc(l.name)}</span> <span class="muted">${logo(l.team)}${esc(l.team)} ${l.home ? "vs" : "@"} ${logo(l.opp)}${esc(l.opp)}</span></td>
               <td>${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || esc(l.stat)}</td>
               <td class="muted">${showOdds(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
               <td>${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
             return `<tr><td class="muted">${esc(b.date)}</td>
-              <td><span class="pname">${esc(b.name)}</span> <span class="muted">${logo(b.team)}${esc(b.team)} ${b.home ? "vs" : "@"} ${logo(b.opp)}${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
+              <td>${face(b.pid, b.name)}<span class="pname">${esc(b.name)}</span> <span class="muted">${logo(b.team)}${esc(b.team)} ${b.home ? "vs" : "@"} ${logo(b.opp)}${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>${tail}`; }).join("")}
         </table></div>` : `<p class="deck">No bets yet. Open the <a href="#desk" id="todesk">Line Desk</a>, price a prop and tap “Save to My Bets”.</p>`}
         <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void. A parlay loses if any leg loses; a leg that pushes or is void drops out and the parlay pays on the rest.</p></div>`;
@@ -913,7 +919,7 @@ function renderPicks() {
     ${pending.length ? `<div class="scroll"><table class="agate">
       <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
       ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
-        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span></td>
+        <td>${face(x.player_id, x.player)}<span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span></td>
         <td class="muted">${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)} · ${dayLabel(x.date)}</td>
         <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
         <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>
@@ -949,7 +955,7 @@ function renderPicks() {
     ${graded.length ? `<div><h3 class="sub">Results<small>${graded.length} graded</small></h3><div class="scroll"><table class="agate">
       <tr><th>Date</th><th>Player</th><th>Pick</th><th>Model</th><th>Actual</th><th>Result</th></tr>
       ${graded.slice(0, S.picksAll ? graded.length : 30).map(x => `<tr><td class="muted">${esc(x.date)}</td>
-        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)} ${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)}</span></td>
+        <td>${face(x.player_id, x.player)}<span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)} ${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)}</span></td>
         <td>${pickText(x)}</td><td>${pct(x.p)}</td><td><b>${x.actual === "" ? "–" : fmt(x.actual, 0)}</b></td>
         <td><span class="st ${x.result}">${x.result}</span></td></tr>`).join("")}</table></div>
       ${graded.length > 30 ? `<button class="more" id="pall">${S.picksAll ? "Show fewer" : `Show all ${graded.length}`}</button>` : ""}</div>` : ""}
