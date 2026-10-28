@@ -1,4 +1,4 @@
-import { grade, gradeParlay, parlayOdds, profit, summarize, toDecimal } from "./grade.js";
+import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -18,7 +18,7 @@ let P, BT, PK = null, INDEX = [];
 const S = {
   tab:"slate", game:null, group:"main", showOut:true,
   board:{ stat:"pra", sort:"gap", hideOut:true },
-  desk:{ pid:null, stat:"pra", line:null, o:{ sign:-1, abs:"" }, u:{ sign:-1, abs:"" }, bet:{ side:null, stake:"1" } },
+  desk:{ pid:null, stat:"pra", line:null, o:{ sign:-1, abs:"", x:"" }, u:{ sign:-1, abs:"", x:"" }, bet:{ side:null, stake:"1" } },
   file:{ id:null, stat:"pts", all:false, sort:{ col:"date", dir:-1 } },
   rec:{ stat:"pts" },
   user:null, bets:null,  // bets: null until loaded for the signed-in user
@@ -67,6 +67,13 @@ const distOf = (p, s) => dist(s, p.proj[s][0], p.proj[s][1]);
 const american = p => p <= 0 || p >= 1 ? "–" : p >= .5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
 const implied = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
 const payout = o => o > 0 ? o : 10000 / -o;  // profit on a $100 stake
+// Odds are typed and shown either as American (−110) or as a payout multiplier (1.91x: the
+// total returned per 1 staked), for apps that only show multipliers. Stored as American.
+let oddsFmt = store.get("propsheet.oddsfmt") === "x" ? "x" : "us";
+const showOdds = o => oddsFmt === "x" ? `${+toDecimal(o).toFixed(2)}x` : `${o > 0 ? "+" : "−"}${Math.abs(o)}`;
+const fairOdds = p => oddsFmt === "x" ? (p <= 0 || p >= 1 ? "–" : `${+(1 / p).toFixed(2)}x`) : american(p);
+const fromMult = v => { const m = parseFloat(String(v).replace(",", ".")); return m > 1 ? toAmerican(m) : NaN; };
+const multText = o => String(+toDecimal(o).toFixed(2));
 // Stand-in line: the half point where the player's recent form alone is closest to
 // 50/50, like a book anchored on form would post (same rule as the model's picks).
 function defaultLine(p, s) {
@@ -291,12 +298,19 @@ function renderDesk() {
         <div class="field"><label>Market</label><select id="ds">${P.targets.map(t => `<option value="${t}" ${t === d.stat ? "selected" : ""}>${P.labels[t]}</option>`).join("")}</select></div>
         <div class="field"><label>Line</label><div class="stepper"><button type="button" id="dminus" aria-label="Lower line">−</button>
           <input id="dl" type="number" step="0.5" inputmode="decimal" value="${d.line}"><button type="button" id="dplus" aria-label="Raise line">+</button></div></div>
+        <div class="field"><label>Your book shows</label><div class="seg" id="ofmt">
+          <button type="button" data-f="us" class="${oddsFmt === "us" ? "on" : ""}">Odds (−110)</button><button type="button" data-f="x" class="${oddsFmt === "x" ? "on" : ""}">Multiplier (1.9x)</button></div></div>
         <div class="two">
-          ${["o", "u"].map(k => `<div class="field"><label>${k === "o" ? "Over" : "Under"} odds</label><div class="odds">
+          ${["o", "u"].map(k => oddsFmt === "x"
+            ? `<div class="field"><label>${k === "o" ? "Over" : "Under"} payout</label><div class="mult">
+            <input data-k="${k}" inputmode="decimal" placeholder="1.91" value="${esc(d[k].x)}" aria-label="${k === "o" ? "Over" : "Under"} payout multiplier"><span aria-hidden="true">x</span></div></div>`
+            : `<div class="field"><label>${k === "o" ? "Over" : "Under"} odds</label><div class="odds">
             <button type="button" class="sign" data-k="${k}" aria-label="Switch plus or minus">${d[k].sign < 0 ? "−" : "+"}</button>
             <input data-k="${k}" inputmode="numeric" pattern="[0-9]*" placeholder="110" value="${esc(d[k].abs)}" aria-label="${k === "o" ? "Over" : "Under"} odds"></div></div>`).join("")}
         </div>
-        <p class="note" style="margin:0">American odds: tap the sign to switch between − and +, then type the number (−110, +125). With both sides entered, the book's margin is removed before comparing.</p>
+        <p class="note" style="margin:0">${oddsFmt === "x"
+          ? "Payout multiplier: what you get back for each 1 you stake, including the stake (1.91x is the same as −110; 2x is even money). Leave it blank if you don't know it."
+          : "American odds: tap the sign to switch between − and +, then type the number (−110, +125)."} With both sides entered, the book's margin is removed before comparing.</p>
         <div id="parlay"></div>
       </div>
       <div id="slip"></div>
@@ -307,6 +321,19 @@ function renderDesk() {
   $("dminus").onclick = () => setLine((+$("dl").value || 0) - .5);
   $("dplus").onclick = () => setLine((+$("dl").value || 0) + .5);
   $("dl").oninput = e => setLine(parseFloat(e.target.value));
+  $("ofmt").onclick = e => {
+    const b = e.target.closest("button"); if (!b || b.dataset.f === oddsFmt) return;
+    const val = k => oddsFmt === "x" ? fromMult(d[k].x) : d[k].abs ? d[k].sign * +d[k].abs : NaN;
+    for (const k of ["o", "u"]) {  // carry what's typed over to the other format
+      const o = val(k);
+      if (Math.abs(o) >= 100) { d[k].x = multText(o); d[k].sign = Math.sign(o); d[k].abs = String(Math.abs(o)); }
+    }
+    const po = parlayCustom();
+    if (Math.abs(po) >= 100) { parlay.odds.x = multText(po); parlay.odds.sign = Math.sign(po); parlay.odds.abs = String(Math.abs(po)); }
+    oddsFmt = b.dataset.f; store.set("propsheet.oddsfmt", oddsFmt); saveParlay(); renderDesk();
+  };
+  $("tab-desk").querySelectorAll(".mult input").forEach(inp => inp.oninput = () => {
+    d[inp.dataset.k].x = inp.value.replace(/[^\d.,]/g, ""); renderSlip(); });
   $("tab-desk").querySelectorAll(".odds .sign").forEach(b => b.onclick = () => {
     const o = d[b.dataset.k]; o.sign = -o.sign; b.textContent = o.sign < 0 ? "−" : "+"; renderSlip(); });
   $("tab-desk").querySelectorAll(".odds input").forEach(inp => inp.oninput = () => {
@@ -323,7 +350,8 @@ function renderDesk() {
 function renderSlip() {
   const d = S.desk, p = P.players.find(x => x.id === d.pid), s = d.stat, L = d.line;
   const D = distOf(p, s), over = D.over(L), under = D.under(L), push = D.push(L), mu = p.proj[s][0];
-  const oo = d.o.abs ? d.o.sign * +d.o.abs : NaN, uo = d.u.abs ? d.u.sign * +d.u.abs : NaN;
+  const read = k => oddsFmt === "x" ? fromMult(d[k].x) : d[k].abs ? d[k].sign * +d[k].abs : NaN;
+  const oo = read("o"), uo = read("u");
   const has = o => !isNaN(o) && Math.abs(o) >= 100;
   let ev = "";
   if (has(oo) || has(uo)) {
@@ -331,7 +359,7 @@ function renderSlip() {
     const side = (o, pw, pl, name) => {
       if (!has(o)) return "";
       const e = pw * payout(o) - pl * 100, book = fairO == null ? implied(o) : (name === "Over" ? fairO : 1 - fairO);
-      return `<div><span class="muted">${name} ${o > 0 ? "+" : "−"}${Math.abs(o)}</span><br>
+      return `<div><span class="muted">${name} ${showOdds(o)}</span><br>
         <b class="${e > 0 ? "pos" : "neg"}">${e > 0 ? "▲ +" : "▼ −"}$${Math.abs(e).toFixed(2)}</b> per $100 <span class="muted">· ${e > 0 ? "value" : "no value"}</span><br>
         <span class="muted">Model ${pct(pw, 1)} vs book ${pct(book, 1)}${fairO == null ? "" : " (no-vig)"}</span></div>`;
     };
@@ -349,14 +377,14 @@ function renderSlip() {
       <div class="field"><label>Stake (units)</label><input id="bstake" inputmode="decimal" value="${esc(d.bet.stake)}"></div>
       <div class="bbtns"><button class="btn accent" id="bsave" type="button">Save to My Bets</button>
         <button class="btn line" id="badd" type="button">${inParlay(p.id, s) ? "Update parlay leg" : "+ Add to parlay"}</button></div>
-      <div class="bnote"><div class="small-note" id="bmsg">${has(bodds) ? `At ${bodds > 0 ? "+" : "−"}${Math.abs(bodds)}` : "No odds entered: saved at −110"}</div></div>
+      <div class="bnote"><div class="small-note" id="bmsg">${has(bodds) ? `At ${showOdds(bodds)}` : `No odds entered: saved at ${showOdds(-110)}`}</div></div>
     </div>`;
   $("slip").innerHTML = `<div class="slip">
     <div class="slip-top">
       <div class="slip-who">${esc(p.name)} · ${logo(p.team)}${p.team} ${p.home ? "vs" : "@"} ${logo(p.opp)}${p.opp} · ${dayLabel(p.date)} · ${P.labels[s]}</div>
       <div class="split">
-        <div class="side o"><div class="lab">Over ${L}</div><div class="big">${pct(over)}</div><div class="fair">Fair odds ${american(over)}</div></div>
-        <div class="side u"><div class="lab">Under ${L}</div><div class="big">${pct(under)}</div><div class="fair">Fair odds ${american(under)}${push > .001 ? ` · push ${pct(push, 1)}` : ""}</div></div>
+        <div class="side o"><div class="lab">Over ${L}</div><div class="big">${pct(over)}</div><div class="fair">Fair ${oddsFmt === "x" ? "payout" : "odds"} ${fairOdds(over)}</div></div>
+        <div class="side u"><div class="lab">Under ${L}</div><div class="big">${pct(under)}</div><div class="fair">Fair ${oddsFmt === "x" ? "payout" : "odds"} ${fairOdds(under)}${push > .001 ? ` · push ${pct(push, 1)}` : ""}</div></div>
       </div>
       <div class="splitbar" aria-hidden="true"><i style="width:${over * 100}%;background:var(--over)"></i><i style="width:${under * 100}%;background:var(--under)"></i></div>
     </div>
@@ -655,6 +683,9 @@ const parlay = (() => { try { return { stake:"1", odds:{ sign:1, abs:"" }, ...JS
                         catch { return { stake:"1", odds:{ sign:1, abs:"" } }; } })();
 parlay.legs ||= [];
 const saveParlay = () => { store.set(PARLAY, JSON.stringify(parlay)); renderParlayBar(); };
+// The odds typed for the whole parlay, as American (NaN if none).
+const parlayCustom = () => oddsFmt === "x" ? fromMult(parlay.odds.x)
+  : parlay.odds.abs ? parlay.odds.sign * +parlay.odds.abs : NaN;
 const inParlay = (pid, stat) => parlay.legs.some(l => l.pid === pid && l.stat === stat);
 function addLeg(leg) {  // one leg per player and market; adding again replaces it
   const i = parlay.legs.findIndex(l => l.pid === leg.pid && l.stat === leg.stat);
@@ -695,7 +726,7 @@ function renderParlayBar() {
   document.body.style.paddingBottom = show ? "72px" : "";  // so the bar never hides the last row
   if (!show) { bar.classList.remove("show"); return; }
   bar.innerHTML = `<div><b>Parlay</b> · ${legs.length} leg${legs.length > 1 ? "s" : ""}${legs.length > 1
-      ? ` · pays ${(o => (o > 0 ? "+" : "−") + Math.abs(o))(parlayOdds(legs))} · model ${pct(legs.reduce((a, l) => a * l.modelP, 1), 1)}` : " · add one more"}</div>
+      ? ` · pays ${showOdds(parlayOdds(legs))} · model ${pct(legs.reduce((a, l) => a * l.modelP, 1), 1)}` : " · add one more"}</div>
     <button type="button" id="pbaropen">Open slip →</button>`;
   bar.classList.add("show");
   $("pbaropen").onclick = () => { go("desk"); setTimeout(() => $("parlay")?.scrollIntoView({ behavior:"smooth", block:"start" }), 50); };
@@ -714,12 +745,12 @@ function renderParlay() {
     return;
   }
   const book = legs.length > 1 ? parlayOdds(legs) : null;
-  const custom = parlay.odds.abs ? parlay.odds.sign * +parlay.odds.abs : NaN;
+  const custom = parlayCustom();
   const odds = Math.abs(custom) >= 100 ? custom : book;
   const modelP = legs.reduce((a, l) => a * l.modelP, 1);
   const ev = odds == null ? null : modelP * toDecimal(odds) - 1;
   const sameGame = new Set(legs.map(l => l.game_id)).size < legs.length;
-  const o = x => `${x > 0 ? "+" : "−"}${Math.abs(x)}`;
+  const o = showOdds;
   el.innerHTML = `<div class="parlay">
     <h3 class="sub" style="margin-top:4px">Parlay<small>${legs.length} leg${legs.length > 1 ? "s" : ""}</small></h3>
     <ol class="legs">${legs.map((l, i) => `<li>
@@ -728,25 +759,28 @@ function renderParlay() {
       <button type="button" class="link" data-i="${i}" aria-label="Remove leg">Remove</button></li>`).join("")}</ol>
     ${legs.length < 2 ? `<p class="note" style="margin:0">Add at least one more leg.</p>` : `
     <div class="facts" style="margin:10px 0 6px">
-      <div class="fact"><div class="k">All hit</div><div class="v">${pct(modelP, 1)}</div><div class="s">model · fair ${american(modelP)}</div></div>
+      <div class="fact"><div class="k">All hit</div><div class="v">${pct(modelP, 1)}</div><div class="s">model · fair ${fairOdds(modelP)}</div></div>
       <div class="fact"><div class="k">Pays</div><div class="v">${o(odds)}</div><div class="s">${odds === book ? "from leg odds" : `legs alone: ${o(book)}`}</div></div>
       <div class="fact"><div class="k">Value</div><div class="v ${ev > 0 ? "pos" : "neg"}">${ev > 0 ? "+" : "−"}$${Math.abs(ev * 100).toFixed(0)}</div><div class="s">per $100</div></div>
     </div>
     ${sameGame ? `<div class="warn">Some legs are in the same game. Their results move together, so “All hit” is only a rough guide, and books price same-game parlays differently: enter your book's odds below.</div>` : ""}
     <div class="two">
-      <div class="field"><label>Book's parlay odds</label><div class="odds">
+      ${oddsFmt === "x" ? `<div class="field"><label>Book's payout</label><div class="mult">
+        <input id="podds" inputmode="decimal" placeholder="${multText(book)}" value="${esc(parlay.odds.x)}" aria-label="Parlay payout multiplier"><span aria-hidden="true">x</span></div></div>`
+      : `<div class="field"><label>Book's parlay odds</label><div class="odds">
         <button type="button" class="sign" id="psign" aria-label="Switch plus or minus">${parlay.odds.sign < 0 ? "−" : "+"}</button>
-        <input id="podds" inputmode="numeric" pattern="[0-9]*" placeholder="${Math.abs(book)}" value="${esc(parlay.odds.abs)}" aria-label="Parlay odds"></div></div>
+        <input id="podds" inputmode="numeric" pattern="[0-9]*" placeholder="${Math.abs(book)}" value="${esc(parlay.odds.abs)}" aria-label="Parlay odds"></div></div>`}
       <div class="field"><label>Stake (units)</label><input id="pstake" inputmode="decimal" value="${esc(parlay.stake)}"></div>
     </div>
     <button class="btn accent" id="psave" type="button" style="margin-top:12px">Save parlay to My Bets</button>`}
     <div class="small-note" id="pmsg"></div>
     <button type="button" class="link" id="pclear">Clear parlay</button></div>`;
   el.querySelectorAll(".legs .link").forEach(b => b.onclick = () => { legs.splice(+b.dataset.i, 1); saveParlay(); renderParlay(); renderSlip(); });
-  $("pclear").onclick = () => { parlay.legs = []; parlay.odds.abs = ""; saveParlay(); renderParlay(); renderSlip(); };
+  $("pclear").onclick = () => { parlay.legs = []; parlay.odds.abs = parlay.odds.x = ""; saveParlay(); renderParlay(); renderSlip(); };
   if (legs.length < 2) return;
-  $("psign").onclick = () => { parlay.odds.sign = -parlay.odds.sign; saveParlay(); renderParlay(); };
+  if ($("psign")) $("psign").onclick = () => { parlay.odds.sign = -parlay.odds.sign; saveParlay(); renderParlay(); };
   $("podds").onchange = e => { const v = e.target.value.trim();
+    if (oddsFmt === "x") { parlay.odds.x = v.replace(/[^\d.,]/g, ""); saveParlay(); renderParlay(); return; }
     if (/^[-−]/.test(v)) parlay.odds.sign = -1; else if (/^\+/.test(v)) parlay.odds.sign = 1;
     parlay.odds.abs = v.replace(/\D/g, ""); saveParlay(); renderParlay(); };
   $("pstake").oninput = e => { parlay.stake = e.target.value; saveParlay(); };
@@ -756,7 +790,7 @@ function renderParlay() {
     const date = legs.map(l => l.date).sort()[0];
     await storeBet({ type:"parlay", legs:[...legs], date, odds, stake, modelP:+modelP.toFixed(4) }, $("psave"), $("pmsg"));
     const msg = $("pmsg").innerHTML;
-    parlay.legs = []; parlay.odds.abs = ""; saveParlay(); renderParlay(); renderSlip();
+    parlay.legs = []; parlay.odds.abs = parlay.odds.x = ""; saveParlay(); renderParlay(); renderSlip();
     $("pmsg").innerHTML = msg;
     $("pmsg").querySelector(".seebets")?.addEventListener("click", e => { e.preventDefault(); go("bets"); });
   };
@@ -790,17 +824,17 @@ function renderBets() {
         ${bets.length ? `<div class="scroll"><table class="agate bets">
           <tr><th>Game</th><th>Player</th><th>Bet</th><th>Odds</th><th>Stake</th><th>Model</th><th>Result</th><th>P/L</th><th></th></tr>
           ${graded.map(g => { const b = g.bet, pl = profit(b, g.status, g.odds);
-            const tail = `<td>${b.odds > 0 ? "+" : "−"}${Math.abs(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
+            const tail = `<td>${showOdds(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
               <td>${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
               <td class="${pl > 0 ? "pos" : pl < 0 ? "neg" : "muted"}">${g.status === "pending" ? "–" : u(pl)}</td>
               <td><button class="link del" data-id="${b.id}" aria-label="Delete bet">Delete</button></td></tr>`;
             if (b.legs) return `<tr class="parlay-row"><td class="muted">${esc(b.date)}</td>
               <td><span class="pname">Parlay</span> <span class="muted">${b.legs.length} legs</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
-              <td>${g.odds !== b.odds && g.status !== "push" ? `<span class="muted">paid at ${g.odds > 0 ? "+" : "−"}${Math.abs(g.odds)}</span>` : ""}</td>${tail}`
+              <td>${g.odds !== b.odds && g.status !== "push" ? `<span class="muted">paid at ${showOdds(g.odds)}</span>` : ""}</td>${tail}`
               + b.legs.map((l, i) => `<tr class="leg"><td class="muted">${esc(l.date)}</td>
               <td><span class="pname">${esc(l.name)}</span> <span class="muted">${logo(l.team)}${esc(l.team)} ${l.home ? "vs" : "@"} ${logo(l.opp)}${esc(l.opp)}</span></td>
               <td>${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || esc(l.stat)}</td>
-              <td class="muted">${l.odds > 0 ? "+" : "−"}${Math.abs(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
+              <td class="muted">${showOdds(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
               <td>${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
             return `<tr><td class="muted">${esc(b.date)}</td>
               <td><span class="pname">${esc(b.name)}</span> <span class="muted">${logo(b.team)}${esc(b.team)} ${b.home ? "vs" : "@"} ${logo(b.opp)}${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>

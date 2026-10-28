@@ -191,6 +191,10 @@
   .odds { display:grid; grid-template-columns:44px 1fr; }
   .odds .sign { background:var(--ink); color:var(--paper); border:0; border-radius:2px 0 0 2px; font:800 22px/1 var(--display); cursor:pointer; }
   .odds input { border-radius:0 2px 2px 0 !important; }
+  .mult { display:grid; grid-template-columns:1fr 44px; }
+  .mult input { border-radius:2px 0 0 2px !important; }
+  .mult span { display:grid; place-items:center; background:var(--ink); color:var(--paper); border-radius:0 2px 2px 0; font:800 20px/1 var(--display); }
+  #ofmt { display:flex; } #ofmt button { flex:1; }
   .slip { background:var(--card); border:1px solid var(--rule); border-radius:3px; position:relative; }
   .slip-top { padding:18px 20px 14px; border-bottom:1px dashed var(--rule); }
   .slip-who { font:800 15px var(--display); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); }
@@ -325,7 +329,7 @@
     .agate td { padding-top:9px; padding-bottom:9px; }
     .addp { width:38px; height:38px; }
     .stack td { padding-top:7px; padding-bottom:7px; }
-    .stepper { grid-template-columns:52px 1fr 52px; } .stepper input, .odds input { min-height:48px; }
+    .stepper { grid-template-columns:52px 1fr 52px; } .stepper input, .odds input, .mult input { min-height:48px; }
     .sugg button { padding:13px 10px; }
   }
   @media (max-width:640px) {
