@@ -569,7 +569,7 @@ Promise.all([
 
 // ==================== TEAM PICKS ====================
 // The team Elo model: win probability and spread for every game this week, and the ratings.
-const TEAMS = { preds:null, ratings:null, meta:null, results:null, err:"", team:"", all:false };
+const TEAMS = { preds:null, ratings:null, meta:null, results:null, err:"", team:"", all:false, view:"upcoming" };
 // Primary and secondary colors (ESPN). A bar uses the primary unless it would vanish on the
 // page background or clash with the opponent's, then the secondary.
 const TEAM_COLORS = { ATL:["#c8102e", "#fdb927"], BKN:["#000000", "#ffffff"], BOS:["#008348", "#ffffff"], CHA:["#008ca8", "#1d1060"],
@@ -613,7 +613,9 @@ function renderTeams() {
   el.innerHTML = `<div class="reveal">
     <div><p class="kicker">Team picks</p><h2 class="head">Who wins each game</h2>
       <p class="deck">Every game this week from the team Elo model: each team's rating moves after every result, adjusted for margin and home court.${bt.accuracy ? ` Tested on ${bt.games.toLocaleString()} past games, it picked the winner ${pct(bt.accuracy)} of the time.` : ""}</p></div>
-    <div class="teamcols">
+    <div class="controls"><div class="seg" id="tview">
+      <button type="button" data-v="upcoming" class="${TEAMS.view === "upcoming" ? "on" : ""}">Upcoming games</button><button type="button" data-v="results" class="${TEAMS.view === "results" ? "on" : ""}">Results${TEAMS.results?.record.n ? ` · ${TEAMS.results.record.correct}–${TEAMS.results.record.n - TEAMS.results.record.correct}` : ""}</button></div></div>
+    ${TEAMS.view === "results" ? pastPicks() : `<div class="teamcols">
       <div>${Object.keys(byDate).sort().map(d => `<h3 class="sub">${dayLabel(d)}<small>${byDate[d].length} games</small></h3>
         <div class="matchups">${byDate[d].map(g => { const [ca, ch] = matchupColors(g.away, g.home), fav = g.home_spread <= 0 ? g.home : g.away;
           return `<div class="matchup">
@@ -627,10 +629,10 @@ function renderTeams() {
           <td class="muted">${i + 1}</td><td>${logo(t.team)}<span class="pname">${esc(TEAM_NAMES[t.team] || t.team)}</span></td>
           <td><span class="rbar"><i style="width:${8 + (t.elo - low) / (top - low || 1) * 92}%;background:${teamColor(t.team)}"></i></span></td>
           <td class="proj">${Math.round(t.elo)}</td></tr>`).join("")}</table></div>
-    </div>
-    ${pastPicks()}
+    </div>`}
     <p class="note">Updated ${new Date(TEAMS.meta.built_at).toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}. The spread is the Elo-implied margin; it doesn't know about injuries or rest.</p>
   </div>`;
+  $("tview").onclick = e => { const b = e.target.closest("button"); if (b) { TEAMS.view = b.dataset.v; renderTeams(); } };
   if ($("tteam")) $("tteam").onchange = e => { TEAMS.team = e.target.value; TEAMS.all = false; renderTeams(); };
   if ($("tall")) $("tall").onclick = () => { TEAMS.all = !TEAMS.all; renderTeams(); };
 }
