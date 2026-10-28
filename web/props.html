@@ -224,7 +224,23 @@
   #serr { color:var(--bad); margin:0; min-height:1.2em; font-size:14px; }
   .dlg-foot { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .betbox { display:grid; grid-template-columns:auto 110px 1fr; gap:12px; align-items:end; padding:14px 0; margin-bottom:12px; border-bottom:1px dashed var(--rule); }
-  @media (max-width:640px) { .betbox { grid-template-columns:1fr 1fr; } .betbox > div:last-child { grid-column:1 / -1; } }
+  .betbox .bbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .betbox .bnote { grid-column:1 / -1; margin-top:-10px; }
+  @media (max-width:640px) { .betbox { grid-template-columns:1fr 1fr; } .betbox .bbtns { grid-column:1 / -1; } }
+  .parlay { border-top:2px solid var(--rule-strong); padding-top:6px; }
+  .parlay h3.sub { border-bottom:1px solid var(--rule); }
+  .legs { list-style:none; margin:0; padding:0; counter-reset:leg; }
+  .legs li { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed var(--rule); font-size:14px; line-height:1.4; }
+  .legs li::before { counter-increment:leg; content:counter(leg); flex:none; width:22px; height:22px; display:grid; place-items:center;
+                     border-radius:50%; background:var(--ink); color:var(--paper); font:700 11px var(--ui); }
+  .legs li > div { flex:1; }
+  .parlay .facts { grid-template-columns:repeat(3, 1fr); }
+  .parlay .fact .v { font-size:22px; }
+  .parlay .link { margin-top:6px; }
+  .agate tr.parlay-row td { border-bottom:0; }
+  .agate tr.leg td { font-size:13px; padding-top:3px; padding-bottom:3px; }
+  .agate.bets td:nth-child(2), .agate.bets th:nth-child(2) { text-align:left; }
+  .agate tr.leg td:nth-child(2) { padding-left:16px; border-left:2px solid var(--over); }
   .small-note { font-size:12px; color:var(--muted); margin-top:5px; min-height:1.2em; }
   .st { font:700 10px/1 var(--ui); letter-spacing:.12em; text-transform:uppercase; padding:3px 5px; border-radius:2px; border:1px solid currentColor; color:var(--muted); }
   .st.won { color:var(--good); } .st.lost { color:var(--bad); }

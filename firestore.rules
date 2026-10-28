@@ -1,13 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // A single prop bet, or a parlay of 2-12 legs.
+    function validBet(d) {
+      return d.stake is number && d.stake > 0 && (
+        (d.keys().hasAll(['pid', 'date', 'stat', 'line', 'side', 'odds', 'stake']) && d.side in ['over', 'under'])
+        || (d.get('type', '') == 'parlay' && d.keys().hasAll(['legs', 'date', 'odds', 'stake'])
+            && d.legs is list && d.legs.size() >= 2 && d.legs.size() <= 12));
+    }
     // Each signed-in user can read and write only their own bets.
     match /users/{uid}/bets/{betId} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
-      allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasAll(['pid', 'date', 'stat', 'line', 'side', 'odds', 'stake'])
-        && request.resource.data.side in ['over', 'under']
-        && request.resource.data.stake is number && request.resource.data.stake > 0;
+      allow create, update: if request.auth != null && request.auth.uid == uid && validBet(request.resource.data);
     }
     // Everything else is closed.
     match /{document=**} {

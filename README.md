@@ -81,6 +81,8 @@ The line for each pick is the half point where recent form alone is closest to 5
 
 Sign in with Google or email/password, save bets from the Line Desk, and the **My Bets** tab grades them against the box scores once games are final (record, units, ROI, and the model's predicted hit rate vs the real one). Code: `web/src/account.js` (Firebase), `web/src/grade.js` (grading). Without a config the site works normally and the sign-in button explains it isn't set up.
 
+**Parlays:** on the Line Desk, "+ Add to parlay" collects props from different players (2–12 legs) into one bet. The slip shows the model's chance that every leg hits (legs multiplied as if independent, so same-game legs get a warning), the payout from the leg odds or your book's parlay odds, and the value per $100. A parlay loses if any leg loses; a leg that pushes or is void drops out and the payout shrinks to the remaining legs.
+
 One-time setup in the [Firebase console](https://console.firebase.google.com):
 
 1. **Project settings → Your apps → Web app → SDK setup and configuration → Config.** Copy the values into `.env` (template: `.env.example`) and commit it. These values are public by design; security comes from the rules below.

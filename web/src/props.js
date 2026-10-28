@@ -1,4 +1,4 @@
-import { grade, profit, summarize } from "./grade.js";
+import { grade, gradeParlay, parlayOdds, profit, summarize, toDecimal } from "./grade.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -289,6 +289,7 @@ function renderDesk() {
             <input data-k="${k}" inputmode="numeric" pattern="[0-9]*" placeholder="110" value="${esc(d[k].abs)}" aria-label="${k === "o" ? "Over" : "Under"} odds"></div></div>`).join("")}
         </div>
         <p class="note" style="margin:0">American odds: tap the sign to switch between − and +, then type the number (−110, +125). With both sides entered, the book's margin is removed before comparing.</p>
+        <div id="parlay"></div>
       </div>
       <div id="slip"></div>
     </div></div>`;
@@ -308,6 +309,7 @@ function renderDesk() {
     inp.previousElementSibling.textContent = o.sign < 0 ? "−" : "+";
     renderSlip(); });
   renderSlip();
+  renderParlay();
 }
 
 function renderSlip() {
@@ -337,8 +339,9 @@ function renderSlip() {
       <div class="field"><label>Your bet</label><div class="seg" id="bside">
         <button data-s="over" class="${bs === "over" ? "on" : ""}">Over ${L}</button><button data-s="under" class="${bs === "under" ? "on" : ""}">Under ${L}</button></div></div>
       <div class="field"><label>Stake (units)</label><input id="bstake" inputmode="decimal" value="${esc(d.bet.stake)}"></div>
-      <div><button class="btn accent" id="bsave" type="button">Save to My Bets</button>
-        <div class="small-note" id="bmsg">${has(bodds) ? `At ${bodds > 0 ? "+" : "−"}${Math.abs(bodds)}` : "No odds entered: saved at −110"}</div></div>
+      <div class="bbtns"><button class="btn accent" id="bsave" type="button">Save to My Bets</button>
+        <button class="btn line" id="badd" type="button">${inParlay(p.id, s) ? "Update parlay leg" : "+ Add to parlay"}</button></div>
+      <div class="bnote"><div class="small-note" id="bmsg">${has(bodds) ? `At ${bodds > 0 ? "+" : "−"}${Math.abs(bodds)}` : "No odds entered: saved at −110"}</div></div>
     </div>`;
   $("slip").innerHTML = `<div class="slip">
     <div class="slip-top">
@@ -367,8 +370,10 @@ function renderSlip() {
     </div></div>`;
   $("bside").onclick = e => { const b = e.target.closest("button"); if (b) { d.bet.side = b.dataset.s; renderSlip(); } };
   $("bstake").oninput = e => { d.bet.stake = e.target.value; };
-  $("bsave").onclick = () => saveCurrentBet({ p, s, L, side:bs, odds:has(bodds) ? bodds : -110,
-    modelP:bs === "over" ? over : under, mu });
+  const leg = { side:bs, odds:has(bodds) ? bodds : -110, modelP:bs === "over" ? over : under, mu };
+  $("bsave").onclick = () => saveCurrentBet({ p, s, L, ...leg });
+  $("badd").onclick = () => { addLeg(betOf({ p, s, L, ...leg })); renderSlip(); renderParlay();
+    $("parlay").scrollIntoView({ behavior:"smooth", block:"nearest" }); };
   getFile(p.id).then(f => {
     if (S.desk.pid !== p.id || S.desk.stat !== s || S.desk.line !== L) return;
     const rows = fileRows(f), last = rows.slice(-10), season = rows.filter(r => r.date >= (f.seasons.at(-1)?.season.slice(0, 4) + "-08-01"));
@@ -606,27 +611,108 @@ function openSignin() {
   dlg.onclick = e => { if (e.target === dlg) dlg.close(); };  // tap the backdrop to close
 }
 
-async function saveCurrentBet({ p, s, L, side, odds, modelP, mu }) {
+const betOf = ({ p, s, L, side, odds, modelP, mu }) => ({ pid:p.id, name:p.name, team:p.team, opp:p.opp, home:p.home,
+  game_id:p.game_id, date:p.date, stat:s, line:L, side, odds, modelP:+modelP.toFixed(4), proj:+mu.toFixed(2) });
+
+function saveCurrentBet(leg) {
   const stake = parseFloat(S.desk.bet.stake);
-  const msg = $("bmsg");
-  if (!(stake > 0)) { msg.innerHTML = `<span class="neg">Enter a stake above 0.</span>`; return; }
-  const bet = { pid:p.id, name:p.name, team:p.team, opp:p.opp, home:p.home, game_id:p.game_id, date:p.date,
-    stat:s, line:L, side, odds, stake, modelP:+modelP.toFixed(4), proj:+mu.toFixed(2) };
+  if (!(stake > 0)) { $("bmsg").innerHTML = `<span class="neg">Enter a stake above 0.</span>`; return; }
+  storeBet({ ...betOf(leg), stake }, $("bsave"), $("bmsg"));
+}
+
+// Saves to the account, or to this device when signed out or the cloud refuses it.
+async function storeBet(bet, btn, msg) {
   const done = note => {
-    msg.innerHTML = `<span class="pos">✓ Saved${note}.</span> <a href="#bets" id="seebets">See My Bets</a>`;
-    $("seebets").onclick = e => { e.preventDefault(); go("bets"); };
+    msg.innerHTML = `<span class="pos">✓ Saved${note}.</span> <a href="#bets" class="seebets">See My Bets</a>`;
+    msg.querySelector(".seebets").onclick = e => { e.preventDefault(); go("bets"); };
   };
-  $("bsave").disabled = true;
+  btn.disabled = true;
   if (acct?.configured && S.user && !S.cloudError) {
-    try { await acct.saveBet(bet); done(""); $("bsave").disabled = false; loadBets(); return; }
+    try { await acct.saveBet(bet); done(""); btn.disabled = false; loadBets(); return true; }
     catch (e) { S.cloudError = acct.errorMessage(e); }
   }
   const saved = { ...bet, id:"local-" + Date.now(), local:true, createdAt:new Date().toISOString() };
   setLocalBets([saved, ...localBets()]);
   S.bets = [saved, ...(S.bets || []).filter(x => x.id !== saved.id)];  // show it right away
   done(S.user ? " on this device (cloud sync is blocked for now)" : " on this device · sign in to keep it across devices");
-  $("bsave").disabled = false;
+  btn.disabled = false;
   loadBets();
+  return true;
+}
+
+// ==================== PARLAY ====================
+// Legs collected from the Line Desk, kept on this device until saved as one bet.
+const PARLAY = "propsheet.parlay";
+const parlay = (() => { try { return { stake:"1", odds:{ sign:1, abs:"" }, ...JSON.parse(store.get(PARLAY) || "{}") }; }
+                        catch { return { stake:"1", odds:{ sign:1, abs:"" } }; } })();
+parlay.legs ||= [];
+const saveParlay = () => store.set(PARLAY, JSON.stringify(parlay));
+const inParlay = (pid, stat) => parlay.legs.some(l => l.pid === pid && l.stat === stat);
+function addLeg(leg) {  // one leg per player and market; adding again replaces it
+  const i = parlay.legs.findIndex(l => l.pid === leg.pid && l.stat === leg.stat);
+  if (i >= 0) parlay.legs[i] = leg; else parlay.legs.push(leg);
+  saveParlay();
+}
+
+function renderParlay() {
+  const el = $("parlay");
+  if (!el) return;
+  parlay.legs = parlay.legs.filter(l => P.games.some(g => g.game_id === l.game_id));  // drop games that have started
+  saveParlay();
+  const legs = parlay.legs;
+  if (!legs.length) {
+    el.innerHTML = `<div class="parlay empty"><h3 class="sub" style="margin-top:4px">Parlay<small>0 legs</small></h3>
+      <p class="note" style="margin:0">Group props from different players into one bet: price a prop, then tap “+ Add to parlay”.</p>
+      <div class="small-note" id="pmsg"></div></div>`;
+    return;
+  }
+  const book = legs.length > 1 ? parlayOdds(legs) : null;
+  const custom = parlay.odds.abs ? parlay.odds.sign * +parlay.odds.abs : NaN;
+  const odds = Math.abs(custom) >= 100 ? custom : book;
+  const modelP = legs.reduce((a, l) => a * l.modelP, 1);
+  const ev = odds == null ? null : modelP * toDecimal(odds) - 1;
+  const sameGame = new Set(legs.map(l => l.game_id)).size < legs.length;
+  const o = x => `${x > 0 ? "+" : "−"}${Math.abs(x)}`;
+  el.innerHTML = `<div class="parlay">
+    <h3 class="sub" style="margin-top:4px">Parlay<small>${legs.length} leg${legs.length > 1 ? "s" : ""}</small></h3>
+    <ol class="legs">${legs.map((l, i) => `<li>
+      <div><b>${esc(l.name)}</b> <span class="muted">${l.team} ${l.home ? "vs" : "@"} ${l.opp}</span><br>
+        ${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || l.stat} <span class="muted">· ${o(l.odds)} · model ${pct(l.modelP)}</span></div>
+      <button type="button" class="link" data-i="${i}" aria-label="Remove leg">Remove</button></li>`).join("")}</ol>
+    ${legs.length < 2 ? `<p class="note" style="margin:0">Add at least one more leg.</p>` : `
+    <div class="facts" style="margin:10px 0 6px">
+      <div class="fact"><div class="k">All hit</div><div class="v">${pct(modelP, 1)}</div><div class="s">model · fair ${american(modelP)}</div></div>
+      <div class="fact"><div class="k">Pays</div><div class="v">${o(odds)}</div><div class="s">${odds === book ? "from leg odds" : `legs alone: ${o(book)}`}</div></div>
+      <div class="fact"><div class="k">Value</div><div class="v ${ev > 0 ? "pos" : "neg"}">${ev > 0 ? "+" : "−"}$${Math.abs(ev * 100).toFixed(0)}</div><div class="s">per $100</div></div>
+    </div>
+    ${sameGame ? `<div class="warn">Some legs are in the same game. Their results move together, so “All hit” is only a rough guide, and books price same-game parlays differently: enter your book's odds below.</div>` : ""}
+    <div class="two">
+      <div class="field"><label>Book's parlay odds</label><div class="odds">
+        <button type="button" class="sign" id="psign" aria-label="Switch plus or minus">${parlay.odds.sign < 0 ? "−" : "+"}</button>
+        <input id="podds" inputmode="numeric" pattern="[0-9]*" placeholder="${Math.abs(book)}" value="${esc(parlay.odds.abs)}" aria-label="Parlay odds"></div></div>
+      <div class="field"><label>Stake (units)</label><input id="pstake" inputmode="decimal" value="${esc(parlay.stake)}"></div>
+    </div>
+    <button class="btn accent" id="psave" type="button" style="margin-top:12px">Save parlay to My Bets</button>`}
+    <div class="small-note" id="pmsg"></div>
+    <button type="button" class="link" id="pclear">Clear parlay</button></div>`;
+  el.querySelectorAll(".legs .link").forEach(b => b.onclick = () => { legs.splice(+b.dataset.i, 1); saveParlay(); renderParlay(); renderSlip(); });
+  $("pclear").onclick = () => { parlay.legs = []; parlay.odds.abs = ""; saveParlay(); renderParlay(); renderSlip(); };
+  if (legs.length < 2) return;
+  $("psign").onclick = () => { parlay.odds.sign = -parlay.odds.sign; saveParlay(); renderParlay(); };
+  $("podds").onchange = e => { const v = e.target.value.trim();
+    if (/^[-−]/.test(v)) parlay.odds.sign = -1; else if (/^\+/.test(v)) parlay.odds.sign = 1;
+    parlay.odds.abs = v.replace(/\D/g, ""); saveParlay(); renderParlay(); };
+  $("pstake").oninput = e => { parlay.stake = e.target.value; saveParlay(); };
+  $("psave").onclick = async () => {
+    const stake = parseFloat(parlay.stake);
+    if (!(stake > 0)) { $("pmsg").innerHTML = `<span class="neg">Enter a stake above 0.</span>`; return; }
+    const date = legs.map(l => l.date).sort()[0];
+    await storeBet({ type:"parlay", legs:[...legs], date, odds, stake, modelP:+modelP.toFixed(4) }, $("psave"), $("pmsg"));
+    const msg = $("pmsg").innerHTML;
+    parlay.legs = []; parlay.odds.abs = ""; saveParlay(); renderParlay(); renderSlip();
+    $("pmsg").innerHTML = msg;
+    $("pmsg").querySelector(".seebets")?.addEventListener("click", e => { e.preventDefault(); go("bets"); });
+  };
 }
 
 // ==================== MY BETS ====================
@@ -636,11 +722,12 @@ function renderBets() {
   if (S.bets == null) { el.innerHTML = `<div class="reveal">${head}<p class="note">Loading your bets…</p></div>`; if (!S.user || acct) loadBets(); return; }
   const who = S.user ? esc(S.user.displayName || S.user.email) : null;
   const bets = S.bets;
-  Promise.all([...new Set(bets.map(b => b.pid))].map(id => getFile(id).then(f => [id, fileRows(f)]).catch(() => [id, []])))
+  const pids = bets.flatMap(b => b.legs ? b.legs.map(l => l.pid) : [b.pid]);
+  Promise.all([...new Set(pids)].map(id => getFile(id).then(f => [id, fileRows(f)]).catch(() => [id, []])))
     .then(pairs => {
       if (S.tab !== "bets" || S.bets !== bets) return;
       const rows = Object.fromEntries(pairs);
-      const graded = bets.map(b => ({ bet:b, ...grade(b, rows[b.pid] || [], P.built_at) }));
+      const graded = bets.map(b => ({ bet:b, ...(b.legs ? gradeParlay(b, rows, P.built_at) : grade(b, rows[b.pid] || [], P.built_at)) }));
       const t = summarize(graded);
       const u = x => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(2)}u`;
       el.innerHTML = `<div class="reveal">${head}
@@ -653,18 +740,26 @@ function renderBets() {
           <div class="fact"><div class="k">ROI</div><div class="v">${t.roi == null ? "–" : (t.roi > 0 ? "+" : "") + (t.roi * 100).toFixed(1) + "%"}</div><div class="s">profit ÷ amount staked</div></div>
           <div class="fact"><div class="k">Model vs reality</div><div class="v">${t.hitRate == null ? "–" : pct(t.hitRate)}</div><div class="s">${t.modelP == null ? "hit rate once bets settle" : `hit rate · model said ${pct(t.modelP)}`}</div></div>
         </div>
-        ${bets.length ? `<div class="scroll"><table class="agate">
+        ${bets.length ? `<div class="scroll"><table class="agate bets">
           <tr><th>Game</th><th>Player</th><th>Bet</th><th>Odds</th><th>Stake</th><th>Model</th><th>Result</th><th>P/L</th><th></th></tr>
-          ${graded.map(g => { const b = g.bet;
+          ${graded.map(g => { const b = g.bet, pl = profit(b, g.status, g.odds);
+            const tail = `<td>${b.odds > 0 ? "+" : "−"}${Math.abs(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
+              <td>${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
+              <td class="${pl > 0 ? "pos" : pl < 0 ? "neg" : "muted"}">${g.status === "pending" ? "–" : u(pl)}</td>
+              <td><button class="link del" data-id="${b.id}" aria-label="Delete bet">Delete</button></td></tr>`;
+            if (b.legs) return `<tr class="parlay-row"><td class="muted">${esc(b.date)}</td>
+              <td><span class="pname">Parlay</span> <span class="muted">${b.legs.length} legs</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
+              <td>${g.odds !== b.odds && g.status !== "push" ? `<span class="muted">paid at ${g.odds > 0 ? "+" : "−"}${Math.abs(g.odds)}</span>` : ""}</td>${tail}`
+              + b.legs.map((l, i) => `<tr class="leg"><td class="muted">${esc(l.date)}</td>
+              <td><span class="pname">${esc(l.name)}</span> <span class="muted">${esc(l.team)} ${l.home ? "vs" : "@"} ${esc(l.opp)}</span></td>
+              <td>${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || esc(l.stat)}</td>
+              <td class="muted">${l.odds > 0 ? "+" : "−"}${Math.abs(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
+              <td>${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
             return `<tr><td class="muted">${esc(b.date)}</td>
               <td><span class="pname">${esc(b.name)}</span> <span class="muted">${esc(b.team)} ${b.home ? "vs" : "@"} ${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
-              <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>
-              <td>${b.odds > 0 ? "+" : "−"}${Math.abs(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
-              <td>${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
-              <td class="${profit(b, g.status) > 0 ? "pos" : profit(b, g.status) < 0 ? "neg" : "muted"}">${g.status === "pending" ? "–" : u(profit(b, g.status))}</td>
-              <td><button class="link del" data-id="${b.id}" aria-label="Delete bet">Delete</button></td></tr>`; }).join("")}
+              <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>${tail}`; }).join("")}
         </table></div>` : `<p class="deck">No bets yet. Open the <a href="#desk" id="todesk">Line Desk</a>, price a prop and tap “Save to My Bets”.</p>`}
-        <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void.</p></div>`;
+        <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void. A parlay loses if any leg loses; a leg that pushes or is void drops out and the parlay pays on the rest.</p></div>`;
       if ($("bout")) $("bout").onclick = () => acct.signOut();
       if ($("bsign")) $("bsign").onclick = openSignin;
       if ($("todesk")) $("todesk").onclick = e => { e.preventDefault(); go("desk"); };
