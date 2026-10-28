@@ -7,7 +7,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/ferdinand/Documents/Github/nba-predictor/scripts/daily.sh</string>
+    <string>/Users/ferdinand/Library/Application Support/nba-predictor/scripts/daily.sh</string>
   </array>
   <!-- 9:00 every morning, after the previous night's games are final.
        If the Mac is asleep then, launchd runs it when it wakes. -->
