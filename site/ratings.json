@@ -28,16 +28,16 @@
     "elo": 1605.3
   },
   {
-    "team": "LAL",
-    "elo": 1586.8
-  },
-  {
     "team": "CLE",
     "elo": 1580.1
   },
   {
     "team": "ATL",
     "elo": 1575.7
+  },
+  {
+    "team": "LAL",
+    "elo": 1573.7
   },
   {
     "team": "CHA",
@@ -48,16 +48,16 @@
     "elo": 1559.4
   },
   {
+    "team": "POR",
+    "elo": 1559.3
+  },
+  {
     "team": "TOR",
     "elo": 1550.1
   },
   {
     "team": "PHI",
     "elo": 1548.6
-  },
-  {
-    "team": "POR",
-    "elo": 1546.2
   },
   {
     "team": "ORL",
