@@ -15,7 +15,7 @@ cdn.nba.com feed  ─┘                 site/ratings.json
 - **`nbaelo/data.py`**: reads NBA's public schedule feed (`cdn.nba.com/static/json/staticData/scheduleLeagueV2.json`), which includes scores for finished games. It's a static file, so it works from GitHub Actions.
 - **`scripts/build.py`**: replays all games, predicts upcoming ones, writes the JSON.
 - **`scripts/backfill_history.py`**: one-time pull of past seasons via `nba_api`.
-- **`web/`**: the pages (`index.html`, `props.html`) and their JS, built with Vite into `dist/`. **`site/`** holds the JSON the Python builds write; Vite copies it into `dist/` as-is.
+- **`web/`**: the site (`props.html`; `index.html` just redirects to it) and its JS, built with Vite into `dist/`. **`site/`** holds the JSON the Python builds write; Vite copies it into `dist/` as-is.
 
 ## Setup
 
@@ -85,7 +85,7 @@ The injury report feeds the rest of the site: players are matched by name, Out /
 
 ## Team logos
 
-`site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js` and `web/index.html`. The logos are the teams' trademarks, shown here only to identify them.
+`site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js`. The logos are the teams' trademarks, shown here only to identify them.
 
 ## Player photos
 

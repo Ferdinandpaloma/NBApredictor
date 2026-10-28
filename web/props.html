@@ -127,6 +127,28 @@
   .tag.out { color:var(--bad); }
   .tag.dtd { color:var(--warn); }
 
+  /* ---------- team picks ---------- */
+  .teamcols { display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr); gap:0 34px; }
+  .teamcols > div + div { border-left:1px solid var(--rule); padding-left:34px; }
+  @media (max-width:900px) { .teamcols { grid-template-columns:1fr; } .teamcols > div + div { border-left:0; padding-left:0; } }
+  .matchups { display:grid; grid-template-columns:1fr 1fr; gap:6px 26px; }
+  @media (max-width:600px) { .matchups { grid-template-columns:1fr; } }
+  .matchup { padding:10px 0 12px; border-bottom:1px dashed var(--rule); }
+  .mrow { display:flex; justify-content:space-between; align-items:center; gap:8px; font:800 18px var(--display); letter-spacing:.04em; }
+  .mrow > span:nth-child(2) { font:500 12px var(--ui); letter-spacing:.06em; }
+  .mrow .logo { width:1.3em; height:1.3em; }
+  .mrow > span:last-child .logo { margin:0 0 0 .3em; }
+  .mrow.small { font:600 13px var(--ui); color:var(--ink-2); }
+  .mrow.small .win { color:var(--ink); font-weight:800; }
+  .wbar { display:flex; gap:2px; height:12px; margin:7px 0 5px; }
+  .wbar i { display:block; height:100%; }
+  .wbar i:first-child { border-radius:4px 0 0 4px; } .wbar i:last-child { border-radius:0 4px 4px 0; }
+  .ratings td { padding-top:7px; padding-bottom:7px; }
+  .ratings td:nth-child(2) { text-align:left; }
+  .ratings td:first-child { width:24px; }
+  .rbar { display:inline-block; width:90px; height:6px; background:var(--rule); border-radius:3px; overflow:hidden; vertical-align:middle; }
+  .rbar i { display:block; height:100%; border-radius:3px; }
+
   /* ---------- news ---------- */
   .wire { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px 22px; }
   .story { display:grid; grid-template-columns:84px 1fr; gap:12px; align-items:start; text-decoration:none; color:inherit; padding-bottom:14px; border-bottom:1px solid var(--rule); }
@@ -383,7 +405,7 @@
 <div class="wrap">
   <div class="ears">
     <span>NBA · Player Props Edition</span>
-    <span class="ear-r"><span id="acct"><button type="button" disabled>Sign in</button></span><a href="./">Team picks</a><button id="theme" type="button" aria-label="Switch theme">Auto</button></span>
+    <span class="ear-r"><span id="acct"><button type="button" disabled>Sign in</button></span><button id="theme" type="button" aria-label="Switch theme">Auto</button></span>
   </div>
   <header class="mast"><h1>The Prop <span>Sheet</span></h1></header>
   <div class="dateline" id="dateline"><span>Loading the late edition…</span></div>
@@ -395,6 +417,7 @@
     <button data-tab="files">Player Files</button>
     <button data-tab="record">Track Record</button>
     <button data-tab="picks">Model Picks</button>
+    <button data-tab="teams">Team Picks</button>
     <button data-tab="news">News</button>
     <button data-tab="bets">My Bets</button>
   </nav>
@@ -406,6 +429,7 @@
     <section id="tab-files" class="hidden"></section>
     <section id="tab-record" class="hidden"></section>
     <section id="tab-picks" class="hidden"></section>
+    <section id="tab-teams" class="hidden"></section>
     <section id="tab-news" class="hidden"></section>
     <section id="tab-bets" class="hidden"></section>
   </main>

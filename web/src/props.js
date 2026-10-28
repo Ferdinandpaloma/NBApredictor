@@ -197,7 +197,7 @@ function go(tab) {
   S.tab = tab;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
-  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews })[tab]();
+  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews, teams:renderTeams })[tab]();
   history.replaceState(null, "", "#" + tab);
   renderParlayBar();
 }
@@ -212,8 +212,10 @@ const THEMES = ["auto", "light", "dark"];
 function applyTheme(t) {
   if (t === "auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
   $("theme").textContent = { auto:"Auto", light:"Day ed.", dark:"Night ed." }[t];
+  if (S.tab === "teams" && TEAMS.preds) renderTeams();  // bar colors depend on the theme
 }
 let theme = store.get("theme") || "auto"; applyTheme(theme);
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => { if (S.tab === "teams" && TEAMS.preds) renderTeams(); });
 $("theme").onclick = () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set("theme", theme); applyTheme(theme); };
 
 // ==================== TONIGHT'S SLATE ====================
@@ -561,9 +563,73 @@ Promise.all([
     <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
     <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
   const h = location.hash.slice(1);
-  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news"].includes(h) ? h : "slate");
+  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news", "teams"].includes(h) ? h : "slate");
   refreshInjuries();
 }).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
+
+// ==================== TEAM PICKS ====================
+// The team Elo model: win probability and spread for every game this week, and the ratings.
+const TEAMS = { preds:null, ratings:null, meta:null, err:"" };
+// Primary and secondary colors (ESPN). A bar uses the primary unless it would vanish on the
+// page background or clash with the opponent's, then the secondary.
+const TEAM_COLORS = { ATL:["#c8102e", "#fdb927"], BKN:["#000000", "#ffffff"], BOS:["#008348", "#ffffff"], CHA:["#008ca8", "#1d1060"],
+  CHI:["#ce1141", "#000000"], CLE:["#860038", "#bc945c"], DAL:["#0064b1", "#bbc4ca"], DEN:["#0e2240", "#fec524"], DET:["#1d428a", "#c8102e"],
+  GSW:["#fdb927", "#1d428a"], HOU:["#ce0e2d", "#000000"], IND:["#0c2340", "#ffd520"], LAC:["#12173f", "#c8102e"], LAL:["#552583", "#fdb927"],
+  MEM:["#5d76a9", "#12173f"], MIA:["#98002e", "#000000"], MIL:["#00471b", "#eee1c6"], MIN:["#266092", "#79bc43"], NOP:["#0a2240", "#b4975a"],
+  NYK:["#1d428a", "#f58426"], OKC:["#007ac1", "#ef3b24"], ORL:["#0150b5", "#9ca0a3"], PHI:["#1d428a", "#e01234"], PHX:["#29127a", "#e56020"],
+  POR:["#e03a3e", "#000000"], SAC:["#5a2d81", "#6a7a82"], SAS:["#000000", "#c4ced4"], TOR:["#d91244", "#000000"], UTA:["#4e008e", "#79a3dc"],
+  WAS:["#e31837", "#002b5c"] };
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const lum = h => { const [r, g, b] = rgb(h).map(v => (v /= 255) <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * r + .7152 * g + .0722 * b; };
+const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + .05) / (y + .05); };
+const colorGap = (a, b) => Math.hypot(...rgb(a).map((v, i) => v - rgb(b)[i]));
+const isDark = () => document.documentElement.dataset.theme === "dark"
+  || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+const seen = c => contrast(c, isDark() ? "#15130f" : "#f3eee3") >= 1.45;  // shows on the page background
+const teamColor = t => { const [a, b] = TEAM_COLORS[t] || ["#888888", "#888888"]; return seen(a) ? a : b; };
+function matchupColors(away, home) {
+  const [a, a2] = TEAM_COLORS[away] || ["#888888", "#888888"], [h, h2] = TEAM_COLORS[home] || ["#888888", "#888888"];
+  // Primaries first, then one team on its secondary: the first pair that both show on the
+  // page and look clearly different (Knicks and 76ers share a blue, Nuggets and Pelicans a navy).
+  const pairs = [[a, h], [a2, h], [a, h2], [a2, h2]].filter(([x, y]) => seen(x) && seen(y));
+  return pairs.find(([x, y]) => colorGap(x, y) >= 100) || pairs[0] || [seen(a) ? a : a2, seen(h) ? h : h2];
+}
+
+function renderTeams() {
+  const el = $("tab-teams");
+  if (!TEAMS.preds && !TEAMS.err) {
+    el.innerHTML = `<p class="note">Loading…</p>`;
+    Promise.all(["predictions", "ratings", "meta"].map(f => fetch(f + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })))
+      .then(([p, r, m]) => { Object.assign(TEAMS, { preds:p, ratings:r, meta:m }); })
+      .catch(e => { TEAMS.err = `Couldn't load the team picks (${e.message}).`; })
+      .then(() => { if (S.tab === "teams") renderTeams(); });
+    return;
+  }
+  if (TEAMS.err) { el.innerHTML = `<div class="warn">${esc(TEAMS.err)}</div>`; return; }
+  const bt = TEAMS.meta.backtest || {}, byDate = {};
+  TEAMS.preds.forEach(g => (byDate[g.date] ||= []).push(g));
+  const top = TEAMS.ratings[0]?.elo, low = TEAMS.ratings.at(-1)?.elo;
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">Team picks</p><h2 class="head">Who wins each game</h2>
+      <p class="deck">Every game this week from the team Elo model: each team's rating moves after every result, adjusted for margin and home court.${bt.accuracy ? ` Tested on ${bt.games.toLocaleString()} past games, it picked the winner ${pct(bt.accuracy)} of the time.` : ""}</p></div>
+    <div class="teamcols">
+      <div>${Object.keys(byDate).sort().map(d => `<h3 class="sub">${dayLabel(d)}<small>${byDate[d].length} games</small></h3>
+        <div class="matchups">${byDate[d].map(g => { const [ca, ch] = matchupColors(g.away, g.home), fav = g.home_spread <= 0 ? g.home : g.away;
+          return `<div class="matchup">
+            <div class="mrow"><span>${logo(g.away)}<b>${g.away}</b></span><span class="muted">${fav} −${Math.abs(g.home_spread)}</span><span><b>${g.home}</b>${logo(g.home)}</span></div>
+            <div class="wbar" data-tip="${g.away} ${pct(g.away_win_prob, 1)} · ${g.home} ${pct(g.home_win_prob, 1)}">
+              <i style="width:${g.away_win_prob * 100}%;background:${ca}"></i><i style="width:${g.home_win_prob * 100}%;background:${ch}"></i></div>
+            <div class="mrow small"><span class="${g.away_win_prob > .5 ? "win" : ""}">${pct(g.away_win_prob)}</span><span class="muted">${g.home === fav ? "home favored" : "road favored"}</span><span class="${g.home_win_prob > .5 ? "win" : ""}">${pct(g.home_win_prob)}</span></div>
+          </div>`; }).join("")}</div>`).join("") || `<p class="note">No upcoming games.</p>`}</div>
+      <div><h3 class="sub">Power ratings<small>Elo · 1500 is average</small></h3>
+        <table class="agate ratings">${TEAMS.ratings.map((t, i) => `<tr>
+          <td class="muted">${i + 1}</td><td>${logo(t.team)}<span class="pname">${esc(TEAM_NAMES[t.team] || t.team)}</span></td>
+          <td><span class="rbar"><i style="width:${8 + (t.elo - low) / (top - low || 1) * 92}%;background:${teamColor(t.team)}"></i></span></td>
+          <td class="proj">${Math.round(t.elo)}</td></tr>`).join("")}</table></div>
+    </div>
+    <p class="note">Updated ${new Date(TEAMS.meta.built_at).toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}. The spread is the Elo-implied margin; it doesn't know about injuries or rest.</p>
+  </div>`;
+}
 
 // ==================== NEWS ====================
 // Headlines, the injury report and transactions, read live from ESPN in the browser.
