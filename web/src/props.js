@@ -1,3 +1,4 @@
+import { TEAM_NAMES, loadInjuries, loadNews, loadTransactions, nameKey } from "./news.js";
 import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
 
 const $ = id => document.getElementById(id);
@@ -17,6 +18,21 @@ const logo = t => !/^[A-Z]{3}$/.test(t || "") ? "" : DARK_LOGOS.has(t)
 const face = (id, name, size = "") => `<span class="face ${size}" aria-hidden="true"><img
   src="https://cdn.nba.com/headshots/nba/latest/${size === "lg" ? "1040x760" : "260x190"}/${esc(id)}.png" alt="" loading="lazy"></span>`;
 document.addEventListener("error", e => { if (e.target.matches?.(".face img")) e.target.parentNode.remove(); }, true);
+// Injury status: the live ESPN report once it has loaded, otherwise what the morning build saw.
+let INJ = null;  // Map of name key -> report entry
+const injOf = (name, fallback) => INJ ? INJ.get(nameKey(name)) || null : fallback || null;
+const backBy = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, { month:"short", day:"numeric" }) : "";
+function injTag(i) {
+  if (!i) return "";
+  const out = i.status === "Out", label = out ? "Out" : i.status === "Day-To-Day" ? "DTD" : i.status;
+  const tip = [i.status + (i.injury ? ` · ${i.injury}` : ""), i.return ? `Expected back ~${backBy(i.return)}` : "", i.note].filter(Boolean).map(esc).join("<br>");
+  return `<span class="tag ${out ? "out" : "dtd"}" data-tip="${tip}">${esc(label)}</span>`;
+}
+// The player's injury tag, or the "missed recent games" flag when they aren't on the report.
+const statusTag = (p, outLabel = "Likely out") => {
+  const i = injOf(p.name, p.injury);
+  return i ? injTag(i) : p.likely_out && !p.injury ? `<span class="tag out">${outLabel}</span>` : "";
+};
 const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
                  more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
 let P, BT, PK = null, INDEX = [];
@@ -181,7 +197,7 @@ function go(tab) {
   S.tab = tab;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
-  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks })[tab]();
+  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews })[tab]();
   history.replaceState(null, "", "#" + tab);
   renderParlayBar();
 }
@@ -214,7 +230,7 @@ function renderSlate() {
     return `<div><h3 class="sub"><span>${logo(code)} ${code}</span><small>${code === g.home ? "Home" : "Away"} · ${ps.length} players</small></h3>
       <div class="scroll"><table class="agate stack"><tr><th>Player</th><th>Min</th>${stats.map(s => `<th>${SHORT[s]}</th>`).join("")}</tr>
       ${ps.map(p => `<tr class="click ${p.likely_out ? "dim" : ""}" data-pid="${p.id}">
-        <td>${face(p.id, p.name)}<span class="pname">${esc(p.name)}</span>${p.likely_out ? '<span class="tag out">Likely out</span>' : ""}</td>
+        <td>${face(p.id, p.name)}<span class="pname">${esc(p.name)}</span>${statusTag(p)}</td>
         <td>${fmt(p.proj.min[0], 0)}<span class="minbar"><i style="width:${Math.min(100, p.proj.min[0] / 40 * 100)}%"></i></span></td>
         ${stats.map(s => { const d = p.proj[s][0] - (p.l10[s] ?? p.proj[s][0]);
           return `<td data-tip="${SHORT[s]}: projected <b>${fmt(p.proj[s][0])}</b><br>Last 10: ${fmt(p.l10[s])} · Season: ${fmt(p.sea[s])}">
@@ -268,7 +284,7 @@ function renderBoard() {
       <tr><th>Player</th><th>Game</th><th>Proj</th><th>Last 10</th><th>Season</th><th>Gap</th><th>Line</th><th style="text-align:left">P(over) · lean</th><th><span class="sr">Parlay</span></th></tr>
       ${rows.slice(0, 80).map(r => { const lean = r.over >= r.under ? ["o", "Over", r.over] : ["u", "Under", r.under];
         return `<tr class="click" data-pid="${r.p.id}" data-line="${r.line}">
-        <td>${face(r.p.id, r.p.name)}<span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${r.p.likely_out ? '<span class="tag out">Out?</span>' : ""}</td>
+        <td>${face(r.p.id, r.p.name)}<span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${statusTag(r.p, "Out?")}</td>
         <td class="muted">${r.p.home ? "vs" : "@"} ${logo(r.p.opp)}${r.p.opp} · ${dayLabel(r.p.date)}</td>
         <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
         <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
@@ -394,7 +410,8 @@ function renderSlip() {
       <div class="splitbar" aria-hidden="true"><i style="width:${over * 100}%;background:var(--over)"></i><i style="width:${under * 100}%;background:var(--under)"></i></div>
     </div>
     <div class="slip-body">
-      ${p.likely_out ? `<div class="warn"><b>Likely out.</b> ${esc(p.name)} has missed their team's last 3+ games. Check the injury report before betting.</div>` : ""}
+      ${(i => i ? `<div class="warn"><b>${esc(i.status)}${i.injury ? ` (${esc(i.injury)})` : ""}.</b> ${esc(i.note)}${i.return ? ` Expected back around ${backBy(i.return)}.` : ""}</div>`
+        : p.likely_out ? `<div class="warn"><b>Likely out.</b> ${esc(p.name)} has missed their team's last 3+ games. Check the injury report before betting.</div>` : "")(injOf(p.name, p.injury))}
       ${ev}
       ${betbox}
       <div class="facts">
@@ -544,8 +561,100 @@ Promise.all([
     <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
     <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
   const h = location.hash.slice(1);
-  go(["slate", "board", "desk", "files", "record", "bets", "picks"].includes(h) ? h : "slate");
+  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news"].includes(h) ? h : "slate");
+  refreshInjuries();
 }).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
+
+// ==================== NEWS ====================
+// Headlines, the injury report and transactions, read live from ESPN in the browser.
+const NEWS = { items:null, tx:null, inj:null, at:null, live:true, snapAt:null, loading:false, err:"", team:"" };
+const ago = iso => {
+  const m = Math.round((Date.now() - Date.parse(iso)) / 6e4);
+  return m < 1 ? "just now" : m < 60 ? `${m}m ago` : m < 1440 ? `${Math.round(m / 60)}h ago` : `${Math.round(m / 1440)}d ago`;
+};
+
+function setInjuries(list) {
+  NEWS.inj = list;
+  INJ = new Map(list.map(i => [i.key, i]));
+  if (["slate", "board", "desk", "picks"].includes(S.tab)) go(S.tab);  // show the live tags
+}
+const refreshInjuries = () => loadInjuries().then(r => setInjuries(r.items)).catch(() => {});  // keeps the build's report
+
+async function refreshNews() {
+  NEWS.loading = true; NEWS.err = "";
+  if (S.tab === "news") renderNews();
+  const [n, i, t] = await Promise.allSettled([loadNews(), loadInjuries(), loadTransactions()]);
+  const ok = [n, i, t].filter(r => r.status === "fulfilled").map(r => r.value);
+  if (n.status === "fulfilled") NEWS.items = n.value.items;
+  if (t.status === "fulfilled") NEWS.tx = t.value.items;
+  if (i.status === "fulfilled") { NEWS.inj = i.value.items; INJ = new Map(NEWS.inj.map(x => [x.key, x])); }
+  NEWS.live = ok.every(r => r.live);
+  NEWS.snapAt = ok.find(r => !r.live)?.at || null;
+  if ([n, i, t].every(r => r.status === "rejected")) NEWS.err = "Couldn't reach ESPN. Check your connection and try again.";
+  NEWS.at = new Date(); NEWS.loading = false;
+  if (S.tab === "news") renderNews();
+}
+// Keep it fresh while the tab is open and visible.
+setInterval(() => { if (S.tab === "news" && document.visibilityState === "visible" && !NEWS.loading) refreshNews(); }, 5 * 6e4);
+
+function renderNews() {
+  const el = $("tab-news");
+  if (!NEWS.at && !NEWS.loading) { refreshNews(); return; }
+  const next = P.games.length ? new Set(P.games.filter(g => g.date === P.games[0].date).flatMap(g => [g.home, g.away])) : new Set();
+  const f = NEWS.team, keep = code => !f || (f === "next" ? next.has(code) : code === f);
+  const nextGame = code => { const g = P.games.find(x => x.home === code || x.away === code);
+    return g ? `${g.home === code ? "vs" : "@"} ${logo(g.home === code ? g.away : g.home)}${g.home === code ? g.away : g.home} · ${dayLabel(g.date)}` : ""; };
+  const ids = new Map(INDEX.map(([id, name]) => [nameKey(name), id]));
+  const names = new Set(Object.entries(TEAM_NAMES).filter(([c]) => keep(c)).map(([, n]) => n));
+  const items = (NEWS.items || []).filter(a => !f || a.teams.some(t => names.has(t)));
+  const byTeam = {};
+  (NEWS.inj || []).filter(i => keep(i.team)).forEach(i => (byTeam[i.team] ||= []).push(i));
+  const teams = Object.keys(byTeam).sort((a, b) => next.has(b) - next.has(a) || a.localeCompare(b));
+  const tx = (NEWS.tx || []).filter(t => keep(t.team));
+  const order = { "Out":0, "Day-To-Day":1 };
+
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">The wire</p><h2 class="head">News, injuries &amp; moves</h2>
+      <p class="deck">Live from ESPN. It refreshes every few minutes while this page is open, and injury tags across the site update with it.</p></div>
+    <div class="controls">
+      <div class="field" style="min-width:220px"><label>Team</label><select id="nteam">
+        <option value="">All teams</option><option value="next" ${f === "next" ? "selected" : ""}>Teams playing ${P.games[0] ? dayLabel(P.games[0].date).toLowerCase() : "next"}</option>
+        ${Object.entries(TEAM_NAMES).map(([c, n]) => `<option value="${c}" ${c === f ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></div>
+      <div class="small-note" style="margin-top:18px">${NEWS.loading ? "Updating…" : NEWS.live ? `Live · checked ${NEWS.at.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" })}`
+          : `Live feed unavailable: showing the ${NEWS.snapAt ? new Date(NEWS.snapAt).toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" }) : "morning"} update`}
+        · <button class="link" id="nrefresh" type="button">Refresh</button></div>
+    </div>
+    ${NEWS.err ? `<div class="warn">${esc(NEWS.err)}</div>` : ""}
+
+    <h3 class="sub">Headlines<small>${items.length} stories</small></h3>
+    ${items.length ? `<div class="wire">${items.slice(0, 13).map((a, k) => `<a class="story ${k === 0 ? "lead" : ""}" href="${esc(a.url)}" target="_blank" rel="noopener">
+        ${a.image ? `<img src="${esc(a.image)}" alt="" loading="lazy">` : ""}
+        <div><p class="kicker">${esc(a.type === "HeadlineNews" ? "Breaking" : a.type === "Recap" ? "Recap" : a.type === "Preview" ? "Preview" : a.type === "Media" ? "Video" : "Story")} · ${ago(a.published)}</p>
+          <h4>${esc(a.headline)}</h4>${k < 5 && a.description ? `<p>${esc(a.description)}</p>` : ""}</div></a>`).join("")}</div>`
+      : `<p class="note">${NEWS.items ? "No recent stories for this filter." : "Loading…"}</p>`}
+
+    <div class="newscols">
+      <div><h3 class="sub">Injury report<small>${(NEWS.inj || []).filter(i => keep(i.team)).length} players</small></h3>
+        ${teams.length ? teams.map(code => `<div class="injteam">
+          <div class="injhead"><b>${logo(code)} ${esc(TEAM_NAMES[code] || code)}</b><span class="muted">${next.has(code) ? nextGame(code) : nextGame(code) || ""}</span></div>
+          ${byTeam[code].sort((a, b) => (order[a.status] ?? 2) - (order[b.status] ?? 2) || a.name.localeCompare(b.name)).map(i => { const id = ids.get(i.key);
+            return `<div class="inj ${id ? "click" : ""}" ${id ? `data-pid="${id}"` : ""}>
+              ${id ? face(id, i.name) : ""}<div><span class="pname">${esc(i.name)}</span> <span class="muted">${esc(i.pos)}</span>${injTag(i)}
+              <div class="small-note" style="margin:2px 0 0">${esc(i.injury || "Undisclosed")}${i.return ? ` · back ~${backBy(i.return)}` : ""} · updated ${ago(i.date)}</div>
+              ${i.note ? `<p class="note" style="margin:3px 0 0;font-size:13px">${esc(i.note)}</p>` : ""}</div></div>`; }).join("")}</div>`).join("")
+        : `<p class="note">${NEWS.inj ? "No injuries listed for this filter." : "Loading…"}</p>`}</div>
+      <div><h3 class="sub">Transactions<small>signings, waivers &amp; trades</small></h3>
+        ${tx.length ? `<ul class="tx">${tx.map(t => `<li><span class="muted">${new Date(t.date).toLocaleDateString(undefined, { month:"short", day:"numeric" })}</span>
+          <div>${logo(t.team)}<b>${esc(t.team)}</b> ${esc(t.text)}</div></li>`).join("")}</ul>`
+        : `<p class="note">${NEWS.tx ? "No recent moves for this filter." : "Loading…"}</p>`}</div>
+    </div>
+    <p class="note">Source: ESPN. Stories open on espn.com. The model reads the injury report each morning: players ruled out are flagged and left out of Model Picks, but projections don't yet adjust teammates' minutes when someone sits.</p>
+  </div>`;
+  $("nteam").onchange = e => { NEWS.team = e.target.value; renderNews(); };
+  $("nrefresh").onclick = () => { if (!NEWS.loading) refreshNews(); };
+  el.querySelectorAll(".inj[data-pid]").forEach(d => d.onclick = () => openFile(d.dataset.pid));
+  el.querySelectorAll(".story img").forEach(img => img.onerror = () => img.remove());
+}
 
 // ==================== ACCOUNT ====================
 // Firebase loads in the background so the page itself stays fast.
@@ -759,7 +868,7 @@ function renderParlay() {
   el.innerHTML = `<div class="parlay">
     <h3 class="sub" style="margin-top:4px">Parlay<small>${legs.length} leg${legs.length > 1 ? "s" : ""}</small></h3>
     <ol class="legs">${legs.map((l, i) => `<li>
-      ${face(l.pid, l.name)}<div><b>${esc(l.name)}</b> <span class="muted">${logo(l.team)}${l.team} ${l.home ? "vs" : "@"} ${logo(l.opp)}${l.opp}</span><br>
+      ${face(l.pid, l.name)}<div><b>${esc(l.name)}</b>${injTag(injOf(l.name))} <span class="muted">${logo(l.team)}${l.team} ${l.home ? "vs" : "@"} ${logo(l.opp)}${l.opp}</span><br>
         ${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || l.stat} <span class="muted">· ${o(l.odds)} · model ${pct(l.modelP)}</span></div>
       <button type="button" class="link" data-i="${i}" aria-label="Remove leg">Remove</button></li>`).join("")}</ol>
     ${legs.length < 2 ? `<p class="note" style="margin:0">Add at least one more leg.</p>` : `
@@ -918,7 +1027,7 @@ function renderPicks() {
     ${pending.length ? `<div class="scroll"><table class="agate">
       <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
       ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
-        <td>${face(x.player_id, x.player)}<span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span></td>
+        <td>${face(x.player_id, x.player)}<span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span>${injTag(injOf(x.player, byId[x.player_id + "|" + x.game_id]?.injury))}</td>
         <td class="muted">${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)} · ${dayLabel(x.date)}</td>
         <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
         <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>

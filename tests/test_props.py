@@ -139,3 +139,37 @@ class PropsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class InjuryTests(unittest.TestCase):
+    def test_name_key_and_apply(self):
+        from nbaelo import injuries
+        self.assertEqual(injuries.name_key("Nikola Jokić"), injuries.name_key("Nikola Jokic"))
+        self.assertEqual(injuries.name_key("Jaren Jackson Jr."), "jaren jackson")
+        raw = {"injuries": [{"injuries": [
+            {"status": "Out", "shortComment": "Foot.", "date": "2026-10-19T19:38Z",
+             "athlete": {"displayName": "Nikola Jokic", "team": {"abbreviation": "GS"}},
+             "details": {"side": "Left", "type": "Foot", "returnDate": "2026-11-20"}},
+            {"status": "Day-To-Day", "athlete": {"displayName": "A Guard", "team": {"abbreviation": "BOS"}}}]}]}
+        rep = injuries.parse(raw)
+        self.assertEqual(rep[0]["team"], "GSW")
+        self.assertEqual(rep[0]["injury"], "Left Foot")
+        players = [{"name": "Nikola Jokić", "likely_out": False}, {"name": "A Guard", "likely_out": False}, {"name": "Other"}]
+        self.assertEqual(injuries.apply(players, rep), 2)
+        self.assertTrue(players[0]["likely_out"])
+        self.assertFalse(players[1]["likely_out"])  # day-to-day isn't ruled out
+        self.assertEqual(players[1]["injury"]["status"], "Day-To-Day")
+        self.assertNotIn("injury", players[2])
+
+
+class WireTests(unittest.TestCase):
+    def test_parse(self):
+        from nbaelo import wire
+        news = wire.parse_news({"articles": [
+            {"id": "1", "type": "Story", "headline": "H", "links": {"web": {"href": "https://x"}},
+             "images": [{"url": "https://img"}], "categories": [{"type": "team", "description": "Utah Jazz"}]},
+            {"headline": "no link"}]})
+        self.assertEqual(len(news), 1)
+        self.assertEqual((news[0]["image"], news[0]["teams"]), ("https://img", ["Utah Jazz"]))
+        tx = wire.parse_transactions({"transactions": [{"date": "d", "team": {"abbreviation": "UTAH"}, "description": "Signed X."}]})
+        self.assertEqual(tx, [{"date": "d", "team": "UTA", "text": "Signed X."}])

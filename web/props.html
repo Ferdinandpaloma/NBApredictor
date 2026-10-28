@@ -24,7 +24,7 @@
     --paper:#f3eee3; --paper-2:#ebe4d5; --card:#f8f4ec; --ink:#1a1714; --ink-2:#4a443b; --muted:#7a7266;
     --rule:#d6cdbb; --rule-strong:#1a1714; --dot:rgba(26,23,20,.07);
     --over:#c4410c; --over-soft:#f3d6c6; --under:#2468b4; --under-soft:#d3e1f1;
-    --good:#1d7a2e; --bad:#b4261f;
+    --good:#1d7a2e; --bad:#b4261f; --warn:#a8650b;
     --display:"Big Shoulders Display", "Arial Narrow", sans-serif;
     --ui:"Barlow Semi Condensed", "Arial Narrow", sans-serif;
     --serif:"Newsreader", Georgia, serif;
@@ -36,7 +36,7 @@
       --paper:#15130f; --paper-2:#1d1a15; --card:#1f1c17; --ink:#efe8d8; --ink-2:#c4bba8; --muted:#8e8574;
       --rule:#35302a; --rule-strong:#efe8d8; --dot:rgba(239,232,216,.045);
       --over:#e8642c; --over-soft:#4a2414; --under:#5a8fc8; --under-soft:#1b2e45;
-      --good:#5cc46e; --bad:#ef6a5f;
+      --good:#5cc46e; --bad:#ef6a5f; --warn:#e0a43a;
     }
   }
   :root[data-theme="dark"] .logo.has-d { display:none; }
@@ -52,7 +52,7 @@
     --paper:#15130f; --paper-2:#1d1a15; --card:#1f1c17; --ink:#efe8d8; --ink-2:#c4bba8; --muted:#8e8574;
     --rule:#35302a; --rule-strong:#efe8d8; --dot:rgba(239,232,216,.045);
     --over:#e8642c; --over-soft:#4a2414; --under:#5a8fc8; --under-soft:#1b2e45;
-    --good:#5cc46e; --bad:#ef6a5f;
+    --good:#5cc46e; --bad:#ef6a5f; --warn:#e0a43a;
   }
 
   * { box-sizing:border-box; }
@@ -125,6 +125,34 @@
   .tag { display:inline-block; font:700 10px/1 var(--ui); letter-spacing:.12em; text-transform:uppercase;
          padding:3px 5px; border:1px solid currentColor; border-radius:2px; vertical-align:2px; margin-left:6px; }
   .tag.out { color:var(--bad); }
+  .tag.dtd { color:var(--warn); }
+
+  /* ---------- news ---------- */
+  .wire { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px 22px; }
+  .story { display:grid; grid-template-columns:84px 1fr; gap:12px; align-items:start; text-decoration:none; color:inherit; padding-bottom:14px; border-bottom:1px solid var(--rule); }
+  .story img { width:84px; height:84px; object-fit:cover; border-radius:2px; background:var(--paper-2); }
+  .story .kicker { font-size:10px; margin-bottom:4px; }
+  .story h4 { font:700 17px/1.2 var(--serif); margin:0; }
+  .story p { font:400 14px/1.45 var(--serif); color:var(--ink-2); margin:6px 0 0; }
+  .story:hover h4 { text-decoration:underline; text-underline-offset:3px; }
+  .story.lead { grid-column:1 / -1; grid-template-columns:minmax(0, 1.1fr) 1fr; gap:22px; }
+  .story.lead img { width:100%; height:auto; aspect-ratio:16 / 10; }
+  .story.lead h4 { font:900 clamp(28px, 4vw, 44px)/.95 var(--display); text-transform:uppercase; }
+  .story.lead p { font-size:17px; }
+  @media (max-width:900px) { .wire { grid-template-columns:1fr 1fr; } }
+  @media (max-width:600px) { .wire { grid-template-columns:1fr; } .story.lead { grid-template-columns:1fr; } }
+  .newscols { display:grid; grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr); gap:0 34px; }
+  .newscols > div + div { border-left:1px solid var(--rule); padding-left:34px; }
+  @media (max-width:900px) { .newscols { grid-template-columns:1fr; } .newscols > div + div { border-left:0; padding-left:0; } }
+  .injteam { margin-bottom:14px; }
+  .injhead { display:flex; justify-content:space-between; gap:10px; align-items:baseline; font:800 15px var(--display); text-transform:uppercase; letter-spacing:.05em;
+             padding:6px 0; border-bottom:1px solid var(--rule-strong); }
+  .injhead .muted { font:500 12px var(--ui); letter-spacing:.06em; text-transform:none; }
+  .inj { display:flex; gap:4px; padding:9px 0; border-bottom:1px dashed var(--rule); font-size:14px; }
+  .inj.click { cursor:pointer; } .inj.click:hover { background:var(--paper-2); }
+  .tx { list-style:none; margin:0; padding:0; }
+  .tx li { display:grid; grid-template-columns:52px 1fr; gap:8px; padding:9px 0; border-bottom:1px dashed var(--rule); font:400 14px/1.45 var(--serif); }
+  .tx b { font-family:var(--ui); margin-right:4px; }
   .hidden { display:none !important; }
   .face { display:inline-block; flex:none; width:30px; height:30px; vertical-align:middle; margin-right:8px; }
   .face img { display:block; width:100%; height:100%; object-fit:cover; object-position:50% 10%; border-radius:50%;
@@ -367,6 +395,7 @@
     <button data-tab="files">Player Files</button>
     <button data-tab="record">Track Record</button>
     <button data-tab="picks">Model Picks</button>
+    <button data-tab="news">News</button>
     <button data-tab="bets">My Bets</button>
   </nav>
 
@@ -377,6 +406,7 @@
     <section id="tab-files" class="hidden"></section>
     <section id="tab-record" class="hidden"></section>
     <section id="tab-picks" class="hidden"></section>
+    <section id="tab-news" class="hidden"></section>
     <section id="tab-bets" class="hidden"></section>
   </main>
 </div>

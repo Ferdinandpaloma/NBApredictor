@@ -77,6 +77,12 @@ Each morning the build (`nbaelo/picks.py`) publishes up to 10 over/unders for th
 
 The line for each pick is the half point where recent form alone is closest to 50/50 (a stand-in for a book line), and only markets a book would plausibly post count, so trivial picks like "under 0.5 threes" for a center are excluded. Because real sportsbook lines are sharper than recent form, the tracker measures accuracy, not profit; use My Bets with real odds for that.
 
+## News & injuries
+
+The **News** tab shows ESPN's NBA headlines, injury report and transactions, read live in the browser from ESPN's public feeds (`web/src/news.js`) and refreshed every 5 minutes while open. The morning build also saves a copy to `site/news.json` (`nbaelo/wire.py`, `nbaelo/injuries.py`), which the page falls back to if the live feed can't be reached.
+
+The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Projections don't yet raise teammates' minutes when someone sits.
+
 ## Team logos
 
 `site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js` and `web/index.html`. The logos are the teams' trademarks, shown here only to identify them.

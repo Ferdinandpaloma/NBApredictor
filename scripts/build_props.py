@@ -22,7 +22,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from nbaelo import injuries  # noqa: E402
 from nbaelo import picks as model_picks  # noqa: E402
+from nbaelo import wire  # noqa: E402
 from nbaelo import props  # noqa: E402
 from nbaelo.data import fetch_schedule, load_history, merge, now_iso, parse_schedule  # noqa: E402
 from nbaelo.elo import EloModel  # noqa: E402
@@ -146,6 +148,21 @@ def main() -> None:
             "e5": {t: r(row[f"{t}_e5"], 2) for t in props.TARGETS},
             "sea": {t: r(row[f"{t}_sea"]) for t in props.TARGETS},
         })
+    # The injury report: players ruled out are flagged, so the picks skip them. It's saved,
+    # with headlines and transactions, as the News tab's fallback when ESPN can't be reached live.
+    news = {"built_at": now_iso()}
+    try:
+        news["injuries"] = injuries.parse(injuries.fetch())
+        print(f"injury report: {injuries.apply(players, news['injuries'])} projected players listed")
+    except Exception as e:  # noqa: BLE001 - the build shouldn't fail over it
+        print(f"injury report unavailable: {e}")
+    for key, path, parse in (("news", "news?limit=40", wire.parse_news),
+                             ("transactions", "transactions", wire.parse_transactions)):
+        try:
+            news[key] = parse(wire.fetch(path))
+        except Exception as e:  # noqa: BLE001
+            print(f"{key} unavailable: {e}")
+    write_json(args.out / "news.json", news)
     players.sort(key=lambda p: (p["date"], p["game_id"], p["team"], -(p["proj"]["min"][0] or 0)))
     games = sorted({(g["date"], g["game_id"]) for g in nxt})
     by_id = {g.game_id: g for g in upcoming}
