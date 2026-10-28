@@ -501,10 +501,10 @@ import("./account.js").then(m => {
   acct.onUser(u => {
     S.user = u; S.bets = null;
     renderAcct();
-    if (u) { $("signin")?.close(); loadBets(); }
-    if (S.tab === "bets") renderBets();
+    if (u) $("signin")?.close();
+    loadBets();
   });
-}).catch(() => { acct = { configured:false, onUser() {} }; renderAcct(); });
+}).catch(() => { acct = { configured:false, onUser() {} }; renderAcct(); loadBets(); });
 
 function renderAcct() {
   const el = $("acct");
@@ -514,9 +514,30 @@ function renderAcct() {
   $("acctbtn").onclick = () => go("bets");
 }
 
+// Bets saved on this device: used when signed out or when the cloud refuses them
+// (e.g. Firestore rules not published). They move to the account once it works.
+const LOCAL_BETS = "propsheet.bets";
+const localBets = () => { try { return JSON.parse(store.get(LOCAL_BETS) || "[]"); } catch { return []; } };
+const setLocalBets = list => store.set(LOCAL_BETS, JSON.stringify(list));
+const savedAt = b => b.createdAt?.toMillis?.() ?? (Date.parse(b.createdAt) || 0);
+
 async function loadBets() {
-  try { S.bets = await acct.listBets(); }
-  catch (e) { S.bets = []; S.betsError = acct.errorMessage(e); }
+  let cloud = [];
+  S.cloudError = null;
+  if (acct?.configured && S.user) {
+    try {
+      cloud = await acct.listBets();
+      const waiting = localBets();
+      if (waiting.length) {  // the cloud works now: move device-only bets up, one at a time
+        for (const { id, local, createdAt, ...bet } of waiting) {
+          await acct.saveBet(bet);
+          setLocalBets(localBets().filter(x => x.id !== id));
+        }
+        cloud = await acct.listBets();
+      }
+    } catch (e) { S.cloudError = acct.errorMessage(e); }
+  }
+  S.bets = [...cloud, ...localBets()].sort((a, b) => savedAt(b) - savedAt(a));
   if (S.tab === "bets") renderBets();
 }
 
@@ -578,34 +599,34 @@ function openSignin() {
 }
 
 async function saveCurrentBet({ p, s, L, side, odds, modelP, mu }) {
-  if (!acct?.configured || !S.user) { openSignin(); return; }
   const stake = parseFloat(S.desk.bet.stake);
   const msg = $("bmsg");
   if (!(stake > 0)) { msg.innerHTML = `<span class="neg">Enter a stake above 0.</span>`; return; }
-  $("bsave").disabled = true;
-  try {
-    await acct.saveBet({ pid:p.id, name:p.name, team:p.team, opp:p.opp, home:p.home, game_id:p.game_id, date:p.date,
-      stat:s, line:L, side, odds, stake, modelP:+modelP.toFixed(4), proj:+mu.toFixed(2) });
-    msg.innerHTML = `<span class="pos">✓ Saved.</span> <a href="#bets" id="seebets">See My Bets</a>`;
+  const bet = { pid:p.id, name:p.name, team:p.team, opp:p.opp, home:p.home, game_id:p.game_id, date:p.date,
+    stat:s, line:L, side, odds, stake, modelP:+modelP.toFixed(4), proj:+mu.toFixed(2) };
+  const done = note => {
+    msg.innerHTML = `<span class="pos">✓ Saved${note}.</span> <a href="#bets" id="seebets">See My Bets</a>`;
     $("seebets").onclick = e => { e.preventDefault(); go("bets"); };
-    loadBets();
-  } catch (e) { msg.innerHTML = `<span class="neg">${esc(acct.errorMessage(e))}</span>`; }
+  };
+  $("bsave").disabled = true;
+  if (acct?.configured && S.user && !S.cloudError) {
+    try { await acct.saveBet(bet); done(""); $("bsave").disabled = false; loadBets(); return; }
+    catch (e) { S.cloudError = acct.errorMessage(e); }
+  }
+  const saved = { ...bet, id:"local-" + Date.now(), local:true, createdAt:new Date().toISOString() };
+  setLocalBets([saved, ...localBets()]);
+  S.bets = [saved, ...(S.bets || []).filter(x => x.id !== saved.id)];  // show it right away
+  done(S.user ? " on this device (cloud sync is blocked for now)" : " on this device · sign in to keep it across devices");
   $("bsave").disabled = false;
+  loadBets();
 }
 
 // ==================== MY BETS ====================
 function renderBets() {
   const el = $("tab-bets");
   const head = `<div><p class="kicker">My bets</p><h2 class="head">Your betting record</h2></div>`;
-  if (!acct) { el.innerHTML = `<div class="reveal">${head}<p class="note">Loading…</p></div>`; return; }
-  if (!acct.configured || !S.user) {
-    el.innerHTML = `<div class="reveal">${head}
-      <p class="deck">Sign in, then save bets from the Line Desk. Once the games are final, each one is graded against the box score, so you can see whether the model is making you money.</p>
-      <div><button class="btn solid" id="bsign" style="max-width:320px">Sign in to start tracking</button></div></div>`;
-    $("bsign").onclick = openSignin; return;
-  }
-  const who = esc(S.user.displayName || S.user.email);
-  if (S.bets == null) { el.innerHTML = `<div class="reveal">${head}<p class="note">Loading your bets…</p></div>`; return; }
+  if (S.bets == null) { el.innerHTML = `<div class="reveal">${head}<p class="note">Loading your bets…</p></div>`; if (!S.user || acct) loadBets(); return; }
+  const who = S.user ? esc(S.user.displayName || S.user.email) : null;
   const bets = S.bets;
   Promise.all([...new Set(bets.map(b => b.pid))].map(id => getFile(id).then(f => [id, fileRows(f)]).catch(() => [id, []])))
     .then(pairs => {
@@ -615,8 +636,9 @@ function renderBets() {
       const t = summarize(graded);
       const u = x => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x).toFixed(2)}u`;
       el.innerHTML = `<div class="reveal">${head}
-        <p class="note">Signed in as <b>${who}</b> · <button class="link" id="bout">Sign out</button></p>
-        ${S.betsError ? `<div class="warn">${esc(S.betsError)}</div>` : ""}
+        <p class="note">${who ? `Signed in as <b>${who}</b> · <button class="link" id="bout">Sign out</button>`
+          : `Bets are saved on this device. <button class="link" id="bsign">Sign in</button> to keep them across devices.`}</p>
+        ${S.cloudError ? `<div class="warn"><b>Cloud sync is off:</b> ${esc(S.cloudError)} Your bets are saved on this device and move to your account automatically once that's fixed.</div>` : ""}
         <div class="scoreline">
           <div class="fact"><div class="k">Record</div><div class="v">${t.won}–${t.lost}${t.push ? "–" + t.push : ""}</div><div class="s">won–lost${t.push ? "–push" : ""} · ${t.pending} pending</div></div>
           <div class="fact"><div class="k">Profit</div><div class="v ${t.units > 0 ? "pos" : t.units < 0 ? "neg" : ""}">${u(t.units)}</div><div class="s">units</div></div>
@@ -627,7 +649,7 @@ function renderBets() {
           <tr><th>Game</th><th>Player</th><th>Bet</th><th>Odds</th><th>Stake</th><th>Model</th><th>Result</th><th>P/L</th><th></th></tr>
           ${graded.map(g => { const b = g.bet;
             return `<tr><td class="muted">${esc(b.date)}</td>
-              <td><span class="pname">${esc(b.name)}</span> <span class="muted">${esc(b.team)} ${b.home ? "vs" : "@"} ${esc(b.opp)}</span></td>
+              <td><span class="pname">${esc(b.name)}</span> <span class="muted">${esc(b.team)} ${b.home ? "vs" : "@"} ${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>
               <td>${b.odds > 0 ? "+" : "−"}${Math.abs(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
               <td>${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
@@ -635,11 +657,17 @@ function renderBets() {
               <td><button class="link del" data-id="${b.id}" aria-label="Delete bet">Delete</button></td></tr>`; }).join("")}
         </table></div>` : `<p class="deck">No bets yet. Open the <a href="#desk" id="todesk">Line Desk</a>, price a prop and tap “Save to My Bets”.</p>`}
         <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void.</p></div>`;
-      $("bout").onclick = () => acct.signOut();
+      if ($("bout")) $("bout").onclick = () => acct.signOut();
+      if ($("bsign")) $("bsign").onclick = openSignin;
       if ($("todesk")) $("todesk").onclick = e => { e.preventDefault(); go("desk"); };
       el.querySelectorAll(".del").forEach(btn => btn.onclick = async () => {
         if (!confirm("Delete this bet?")) return;
-        try { await acct.deleteBet(btn.dataset.id); S.bets = S.bets.filter(b => b.id !== btn.dataset.id); renderBets(); }
+        const id = btn.dataset.id;
+        try {
+          if (id.startsWith("local-")) setLocalBets(localBets().filter(b => b.id !== id));
+          else await acct.deleteBet(id);
+          S.bets = S.bets.filter(b => b.id !== id); renderBets();
+        }
         catch (e) { alert(acct.errorMessage(e)); }
       });
     });
