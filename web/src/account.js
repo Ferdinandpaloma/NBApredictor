@@ -19,6 +19,7 @@ const config = {
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: env.VITE_FIREBASE_APP_ID,
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 export const configured = Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
 
@@ -80,6 +81,7 @@ const MESSAGES = {
   "auth/network-request-failed": "Network problem. Check your connection.",
   "auth/unauthorized-domain": "This website isn't on the Firebase authorized-domains list yet.",
   "auth/operation-not-allowed": "That sign-in method isn't turned on in Firebase yet.",
+  "auth/configuration-not-found": "Sign-in isn't set up in Firebase yet (Authentication → Get started).",
   "permission-denied": "Firestore blocked that. Check the security rules are published.",
   "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "The Firebase config in .env is wrong (bad API key).",
 };
