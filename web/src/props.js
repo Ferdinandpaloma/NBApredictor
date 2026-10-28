@@ -9,7 +9,7 @@ const SHORT = { pts:"PTS", reb:"REB", ast:"AST", pra:"PRA", pr:"P+R", pa:"P+A", 
   oreb:"OREB", dreb:"DREB", min:"MIN" };
 const GROUPS = { main:["pts","reb","ast","fg3m","pra"], combos:["pra","pr","pa","ra","stocks"],
                  more:["stl","blk","tov","fgm","fga","ftm","fta","oreb","dreb"] };
-let P, BT, INDEX = [];
+let P, BT, PK = null, INDEX = [];
 const S = {
   tab:"slate", game:null, group:"main", showOut:true,
   board:{ stat:"pra", sort:"gap", hideOut:true },
@@ -62,7 +62,14 @@ const distOf = (p, s) => dist(s, p.proj[s][0], p.proj[s][1]);
 const american = p => p <= 0 || p >= 1 ? "–" : p >= .5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
 const implied = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
 const payout = o => o > 0 ? o : 10000 / -o;  // profit on a $100 stake
-const defaultLine = (p, s) => Math.floor(p.l10[s] ?? p.proj[s][0]) + 0.5;
+// Stand-in line: the half point where the player's recent form alone is closest to
+// 50/50, like a book anchored on form would post (same rule as the model's picks).
+function defaultLine(p, s) {
+  const form = p.e5?.[s] ?? p.l10[s] ?? p.proj[s][0], D = dist(s, form, p.proj[s][1]);
+  const base = Math.floor(form) + 0.5;
+  return [base - 1, base, base + 1].filter(c => c > 0)
+    .reduce((a, c) => Math.abs(D.over(c) - 0.5) < Math.abs(D.over(a) - 0.5) ? c : a, base);
+}
 
 // ---------- tooltip (any element with data-tip) ----------
 const tip = $("tip");
@@ -157,7 +164,7 @@ function go(tab) {
   S.tab = tab;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
-  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets })[tab]();
+  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks })[tab]();
   history.replaceState(null, "", "#" + tab);
 }
 function openDesk(pid, stat, line) {
@@ -482,15 +489,16 @@ Promise.all([
   fetch("props.json").then(r => r.json()),
   fetch("props_backtest.json").then(r => r.ok ? r.json() : null).catch(() => null),
   fetch("players/index.json").then(r => r.ok ? r.json() : []).catch(() => []),
-]).then(([props, bt, index]) => {
-  P = props; BT = bt; INDEX = index;
+  fetch("picks.json").then(r => r.ok ? r.json() : null).catch(() => null),
+]).then(([props, bt, index, picks]) => {
+  P = props; BT = bt; INDEX = index; PK = picks;
   const built = new Date(P.built_at);
   $("dateline").innerHTML = `<span>Season <b>${esc(P.season)}</b></span>
     <span>${today.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric", year:"numeric" })}</span>
     <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
     <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
   const h = location.hash.slice(1);
-  go(["slate", "board", "desk", "files", "record", "bets"].includes(h) ? h : "slate");
+  go(["slate", "board", "desk", "files", "record", "bets", "picks"].includes(h) ? h : "slate");
 }).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
 
 // ==================== ACCOUNT ====================
@@ -671,4 +679,106 @@ function renderBets() {
         catch (e) { alert(acct.errorMessage(e)); }
       });
     });
+}
+
+// ==================== MODEL PICKS ====================
+// One line over time, with a dashed reference; hover/tap a day for its numbers.
+function lineChart(points, ref, refLabel) {
+  const W = 680, H = 210, pl = 40, pr = 10, pt = 16, pb = 26, n = points.length;
+  const ys = points.map(p => p.y).concat(ref ?? []);
+  const lo = Math.max(0, Math.floor((Math.min(...ys) - .05) * 10) / 10), hi = Math.min(1, Math.ceil((Math.max(...ys) + .05) * 10) / 10);
+  const x = i => pl + (n < 2 ? 0 : i * (W - pl - pr) / (n - 1)), y = v => pt + (1 - (v - lo) / (hi - lo)) * (H - pt - pb);
+  const ticks = [lo, (lo + hi) / 2, hi];
+  let out = ticks.map(t => `<line x1="${pl}" x2="${W - pr}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule)"/>
+    <text x="${pl - 6}" y="${y(t) + 4}" text-anchor="end">${Math.round(t * 100)}%</text>`).join("");
+  if (ref != null) out += `<line x1="${pl}" x2="${W - pr}" y1="${y(ref)}" y2="${y(ref)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text class="lbl" x="${W - pr}" y="${y(ref) - 6}" text-anchor="end">${refLabel}</text>`;
+  out += `<polyline points="${points.map((p, i) => `${x(i)},${y(p.y)}`).join(" ")}" fill="none" stroke="var(--over)" stroke-width="2" stroke-linejoin="round"/>`;
+  const step = Math.max(1, Math.floor(n / 60));  // keep hover targets reasonable on long seasons
+  points.forEach((p, i) => { if (i % step === 0 || i === n - 1) out += `<rect x="${x(i) - (W - pl - pr) / n / 2 * step}" y="${pt}" width="${Math.max((W - pl - pr) / n * step, 6)}" height="${H - pt - pb}" fill="transparent" data-tip="${p.tip}"/>`; });
+  const last = points[n - 1];
+  out += `<circle cx="${x(n - 1)}" cy="${y(last.y)}" r="4.5" fill="var(--over)" stroke="var(--card)" stroke-width="2"/>`;
+  out += `<text x="${pl}" y="${H - 6}">${esc(points[0].label)}</text><text x="${W - pr}" y="${H - 6}" text-anchor="end">${esc(last.label)}</text>`;
+  return `<div class="chart"><svg class="wide" viewBox="0 0 ${W} ${H}" role="img" aria-label="Hit rate over time">${out}</svg></div>`;
+}
+
+// Cumulative hit rate, day by day.
+function hitSeries(daily) {
+  let w = 0, l = 0;
+  return daily.map(d => { w += d.won; l += d.lost;
+    return { y:w / (w + l), label:d.date, tip:`<b>${esc(d.date)}</b><br>That day ${d.won}–${d.lost}<br>Season so far ${pct(w / (w + l), 1)} (${w}–${l})` }; });
+}
+
+function accuracyTables(s) {
+  const row = (label, b) => b.n ? `<tr><td><span class="pname">${label}</span></td><td>${b.n}</td><td>${b.won}–${b.lost}</td>
+    <td class="proj">${pct(b.hit, 1)}</td><td>${pct(b.avg_p, 1)}</td>
+    <td class="${b.hit >= b.avg_p - .02 ? "pos" : "neg"}">${b.hit >= b.avg_p ? "▲" : "▼"} ${fmt(Math.abs(b.hit - b.avg_p) * 100)} pts</td></tr>` : "";
+  const head = `<tr><th></th><th>Picks</th><th>Record</th><th>Hit rate</th><th>Model said</th><th>Difference</th></tr>`;
+  return `<div class="two-col">
+    <div><h3 class="sub">By confidence<small>is the model honest?</small></h3><div class="scroll"><table class="agate">${head}
+      ${s.by_conf.map(b => row(`${Math.round(b.lo * 100)}–${Math.round(b.hi * 100)}%`, b)).join("")}</table></div></div>
+    <div><h3 class="sub">By market</h3><div class="scroll"><table class="agate">${head}
+      ${Object.entries(s.by_market).map(([t, b]) => row(P.labels[t], b)).join("")}</table></div></div></div>`;
+}
+
+const pickText = x => `${x.side === "over" ? "Over" : "Under"} ${x.line} ${SHORT[x.stat] || x.stat}`;
+
+function renderPicks() {
+  const el = $("tab-picks");
+  if (!PK) { el.innerHTML = `<p class="deck">No picks published yet. They appear after the next data update.</p>`; return; }
+  const L = PK.live, sim = PK.sim, r = PK.rules;
+  const pending = L.picks.filter(x => !x.result), graded = L.picks.filter(x => x.result);
+  const byId = Object.fromEntries(P.players.map(p => [p.id + "|" + p.game_id, p]));
+  el.innerHTML = `<div class="reveal">
+    <div><p class="kicker">Model picks</p><h2 class="head">The model's picks, graded</h2>
+      <p class="deck">Every morning the model picks up to ${r.per_day} over/unders where it disagrees most with a player's recent form. Picks lock when they're published and are graded from the box score after the game, so the record can't be cherry-picked.</p></div>
+
+    <div><h3 class="sub">${pending.length ? `Open picks · ${dayLabel(pending[0].date)}` : "Open picks"}<small>${pending.length} pending</small></h3>
+    ${pending.length ? `<div class="scroll"><table class="agate">
+      <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th></tr>
+      ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
+        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${esc(x.team)}</span></td>
+        <td class="muted">${x.home ? "vs" : "@"} ${esc(x.opp)} · ${dayLabel(x.date)}</td>
+        <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
+        <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>
+        <td>${fmt(x.proj)}</td><td class="muted">${fmt(x.form)}</td></tr>`).join("")}</table></div>
+      <p class="note">“Form said” is the chance recent form alone gives that side (about 50%, by design). Tap a pick to price it against your book's line.</p>`
+      : `<p class="note">No open picks right now. The next slate's picks are published with the morning update.</p>`}</div>
+
+    <div><h3 class="sub">Live record<small>since picks started</small></h3>
+      <div class="scoreline">
+        <div class="fact"><div class="k">Graded picks</div><div class="v">${L.n}</div><div class="s">${L.push ? L.push + " push · " : ""}${L.void ? L.void + " void · " : ""}${L.pending} pending</div></div>
+        <div class="fact"><div class="k">Record</div><div class="v">${L.n ? `${L.won}–${L.lost}` : "–"}</div><div class="s">won–lost</div></div>
+        <div class="fact"><div class="k">Hit rate</div><div class="v">${L.n ? pct(L.hit, 1) : "–"}</div><div class="s">${L.n ? `model said ${pct(L.avg_p, 1)}` : "first results after the games"}</div></div>
+        <div class="fact"><div class="k">Days tracked</div><div class="v">${L.daily.length}</div><div class="s">with graded picks</div></div>
+      </div>
+      ${L.daily.length >= 2 ? `<div class="legend" style="margin-top:12px"><span><i style="background:var(--over)"></i>Hit rate so far</span><span class="muted">dashed: what the model predicted</span></div>${lineChart(hitSeries(L.daily), L.avg_p, `MODEL SAID ${pct(L.avg_p)}`)}` : ""}
+      ${L.n ? accuracyTables(L) : ""}</div>
+
+    ${sim?.n ? `<div><h3 class="sub">Simulated: the same rules on ${esc(sim.seasons.join(", "))}<small>${sim.n.toLocaleString()} picks · ${sim.daily.length} days</small></h3>
+      <p class="note">What the picks would have looked like last season, using predictions from a model that hadn't seen those games. A guide, not a live record.</p>
+      <div class="scoreline">
+        <div class="fact"><div class="k">Record</div><div class="v">${sim.won.toLocaleString()}–${sim.lost.toLocaleString()}</div><div class="s">won–lost</div></div>
+        <div class="fact"><div class="k">Hit rate</div><div class="v">${pct(sim.hit, 1)}</div><div class="s">model said ${pct(sim.avg_p, 1)}</div></div>
+        <div class="fact"><div class="k">Picks a day</div><div class="v">${fmt(sim.n / sim.daily.length)}</div><div class="s">average</div></div>
+        <div class="fact"><div class="k">Best market</div><div class="v" style="font-size:22px">${(() => { const e = Object.entries(sim.by_market).filter(([, b]) => b.n >= 50).sort((a, b) => b[1].hit - a[1].hit)[0]; return e ? `${SHORT[e[0]]} ${pct(e[1].hit)}` : "–"; })()}</div><div class="s">50+ picks</div></div>
+      </div>
+      <div class="legend" style="margin-top:12px"><span><i style="background:var(--over)"></i>Hit rate so far</span><span class="muted">dashed: what the model predicted</span></div>
+      ${lineChart(hitSeries(sim.daily), sim.avg_p, `MODEL SAID ${pct(sim.avg_p)}`)}
+      ${accuracyTables(sim)}</div>` : ""}
+
+    <div class="warn"><b>Read this before betting on it.</b> These picks are graded against a line set from recent form, not a sportsbook's. Books know about injuries, role changes and new teams, so their lines are sharper and the model's edge against them is much smaller than these hit rates. Use the Line Desk with your book's actual line and odds.</div>
+
+    ${graded.length ? `<div><h3 class="sub">Results<small>${graded.length} graded</small></h3><div class="scroll"><table class="agate">
+      <tr><th>Date</th><th>Player</th><th>Pick</th><th>Model</th><th>Actual</th><th>Result</th></tr>
+      ${graded.slice(0, S.picksAll ? graded.length : 30).map(x => `<tr><td class="muted">${esc(x.date)}</td>
+        <td><span class="pname">${esc(x.player)}</span> <span class="muted">${esc(x.team)} ${x.home ? "vs" : "@"} ${esc(x.opp)}</span></td>
+        <td>${pickText(x)}</td><td>${pct(x.p)}</td><td><b>${x.actual === "" ? "–" : fmt(x.actual, 0)}</b></td>
+        <td><span class="st ${x.result}">${x.result}</span></td></tr>`).join("")}</table></div>
+      ${graded.length > 30 ? `<button class="more" id="pall">${S.picksAll ? "Show fewer" : `Show all ${graded.length}`}</button>` : ""}</div>` : ""}
+  </div>`;
+  el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => {
+    if (byId[tr.dataset.pid + "|" + tr.dataset.g]) openDesk(tr.dataset.pid, tr.dataset.s, +tr.dataset.l);
+  });
+  if ($("pall")) $("pall").onclick = () => { S.picksAll = !S.picksAll; renderPicks(); };
 }

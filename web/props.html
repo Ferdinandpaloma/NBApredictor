@@ -259,6 +259,9 @@
   .scoreline { display:grid; grid-template-columns:repeat(4, 1fr); gap:0; border-top:2px solid var(--rule-strong); border-bottom:1px solid var(--rule); margin-top:18px; }
   .scoreline > div { padding:12px 14px 12px 0; } .scoreline > div + div { padding-left:14px; border-left:1px solid var(--rule); }
   @media (max-width:640px) { .scoreline { grid-template-columns:1fr 1fr; } .scoreline > div:nth-child(3) { border-left:0; padding-left:0; } .scoreline > div:nth-child(n+3) { border-top:1px solid var(--rule); } }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:0 34px; }
+  .two-col > * { min-width:0; }
+  @media (max-width:860px) { .two-col { grid-template-columns:1fr; } }
   .calib { display:grid; grid-template-columns:minmax(0, 420px) 1fr; gap:28px; align-items:start; }
   @media (max-width:760px) { .calib { grid-template-columns:1fr; } }
 
@@ -306,6 +309,7 @@
     <button data-tab="desk">Line Desk</button>
     <button data-tab="files">Player Files</button>
     <button data-tab="record">Track Record</button>
+    <button data-tab="picks">Model Picks</button>
     <button data-tab="bets">My Bets</button>
   </nav>
 
@@ -315,6 +319,7 @@
     <section id="tab-desk" class="hidden"></section>
     <section id="tab-files" class="hidden"></section>
     <section id="tab-record" class="hidden"></section>
+    <section id="tab-picks" class="hidden"></section>
     <section id="tab-bets" class="hidden"></section>
   </main>
 </div>

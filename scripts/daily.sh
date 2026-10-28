@@ -18,7 +18,7 @@ $PY -m scripts.backfill_players "$YEAR" "$YEAR"
 $PY -m scripts.build
 $PY -m scripts.build_props --no-fetch
 
-git add site/*.json site/players data/player_logs.csv
+git add site/*.json site/players data/player_logs.csv data/picks.csv
 if git diff --cached --quiet; then
   echo "no changes"
 else

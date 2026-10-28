@@ -22,6 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from nbaelo import picks as model_picks  # noqa: E402
 from nbaelo import props  # noqa: E402
 from nbaelo.data import fetch_schedule, load_history, merge, now_iso, parse_schedule  # noqa: E402
 from nbaelo.elo import EloModel  # noqa: E402
@@ -29,6 +30,7 @@ from nbaelo.players import STATS, load_logs, save_logs, update_logs  # noqa: E40
 
 HISTORY = ROOT / "data" / "history.csv"
 LOGS = ROOT / "data" / "player_logs.csv"
+PICKS = ROOT / "data" / "picks.csv"
 SITE = ROOT / "site"
 BACKTEST_SEASONS = ["2022-23", "2023-24", "2024-25", "2025-26"]
 LOG_COLS = ["date", "opp", "home"] + [s for s in STATS] + list(props.COMBOS)
@@ -129,7 +131,7 @@ def main() -> None:
         for t in ("pts", "pra"):
             print(f"{t}: {bt[t]}")
 
-    proj, disp = props.train_and_project(df)
+    proj, disp, past, past_mu = props.train_and_project(df)
     fut = df[df["future"]]
     players = []
     for i, row in fut.iterrows():
@@ -141,6 +143,7 @@ def main() -> None:
             "gp": int(row["gp"]), "spread": r(row["spread"]),
             "proj": {t: [r(mu[t], 2), r(props.dist_param(disp[t], mu[t]), 5)] for t in props.TARGETS},
             "l10": {t: r(row[f"{t}_l10"]) for t in props.TARGETS},
+            "e5": {t: r(row[f"{t}_e5"], 2) for t in props.TARGETS},
             "sea": {t: r(row[f"{t}_sea"]) for t in props.TARGETS},
         })
     players.sort(key=lambda p: (p["date"], p["game_id"], p["team"], -(p["proj"]["min"][0] or 0)))
@@ -154,6 +157,22 @@ def main() -> None:
         "players": players,
     })
     player_pages(df, args.out / "players")
+
+    # The model's picks: grade earlier ones, lock in today's, and simulate last season.
+    made = model_picks.load(PICKS)
+    model_picks.grade(made, logs)
+    new = model_picks.make_picks(players, made, now_iso())
+    made += new
+    model_picks.save(PICKS, made)
+    write_json(args.out / "picks.json", {
+        "built_at": now_iso(),
+        "rules": {"markets": model_picks.MARKETS, "min_p": model_picks.MIN_P, "per_day": model_picks.PER_DAY,
+                  "min_minutes": model_picks.MIN_MINUTES, "odds": model_picks.ODDS},
+        "live": {**model_picks.summarize(made),
+                 "picks": sorted(made, key=lambda x: (x["date"], x["p"]), reverse=True)},  # newest first
+        "sim": model_picks.simulate(past, past_mu, disp),
+    })
+    print(f"picks: {len(new)} new, {len(made)} total")
     print(f"wrote {len(players)} projections across {len(games)} games")
 
 

@@ -333,11 +333,12 @@ def _pool(folds: list[dict]) -> dict:
     return out
 
 
-def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict]:
+def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict, pd.DataFrame, pd.DataFrame]:
     """Fit on all finished games and project the future rows.
 
     Dispersion comes from a model trained on seasons before the last complete
-    one and scored on everything since (out of sample).
+    one and scored on everything since (out of sample). Returns
+    (projections, dispersion, last complete season's rows, their out-of-sample means).
     """
     rows = trainable(df).dropna(subset=["min_e20"])
     future = df[df["future"]]
@@ -352,4 +353,5 @@ def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict]:
     log(f"final fit on {len(rows)} player-games")
     models = fit(rows)
     proj = predict(models, future) if len(future) else pd.DataFrame(columns=TARGETS)
-    return proj, disp
+    last = hold["season"] == holdout_from
+    return proj, disp, hold[last], hold_mu[last]
