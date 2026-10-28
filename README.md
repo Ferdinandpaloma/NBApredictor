@@ -15,7 +15,7 @@ cdn.nba.com feed  ─┘                 site/ratings.json
 - **`nbaelo/data.py`**: reads NBA's public schedule feed (`cdn.nba.com/static/json/staticData/scheduleLeagueV2.json`), which includes scores for finished games. It's a static file, so it works from GitHub Actions.
 - **`scripts/build.py`**: replays all games, predicts upcoming ones, writes the JSON.
 - **`scripts/backfill_history.py`**: one-time pull of past seasons via `nba_api`.
-- **`site/index.html`**: the page. It just fetches the JSON.
+- **`web/`**: the pages (`index.html`, `props.html`) and their JS, built with Vite into `dist/`. **`site/`** holds the JSON the Python builds write; Vite copies it into `dist/` as-is.
 
 ## Setup
 
@@ -30,14 +30,15 @@ cdn.nba.com feed  ─┘                 site/ratings.json
 2. **Build locally.**
    ```bash
    python -m scripts.build
-   cd site && python -m http.server   # open http://localhost:8000
+   npm install
+   npm run dev        # open the URL it prints, e.g. http://localhost:5173/props.html
    ```
 
 3. **Deploy.** Push to GitHub, then go to **Settings → Pages → Source: GitHub Actions**. The workflow runs daily at about 6am Pacific, or on demand from the Actions tab.
 
 ## Player props
 
-`site/props.html` projects every rotation player's next game: points, rebounds, assists, 3PM, steals, blocks, turnovers, shooting, minutes, and the combo markets (PRA, P+R, P+A, R+A, S+B). Enter a sportsbook line (and optionally the odds) to get P(over)/P(under), fair odds and expected value. Every player since 2018-19 has a page with season averages and a full game log.
+`web/props.html` projects every rotation player's next game: points, rebounds, assists, 3PM, steals, blocks, turnovers, shooting, minutes, and the combo markets (PRA, P+R, P+A, R+A, S+B). Enter a sportsbook line (and optionally the odds) to get P(over)/P(under), fair odds and expected value. Every player since 2018-19 has a page with season averages and a full game log.
 
 - **`nbaelo/players.py`**: box scores. History in `data/player_logs.csv`; new games come from the CDN box score feed, which works from GitHub Actions.
 - **`nbaelo/props.py`**: the model. Features use only earlier games: recent form (exponentially weighted, last 10, season), per-minute rates × projected minutes, opponent defense vs the league for that stat, pace, rest/back-to-backs, Elo spread (blowout risk), and teammates who sat. One gradient-boosted model per stat predicts the mean. A negative binomial around it, with dispersion fitted on out-of-sample games, gives the probabilities.
@@ -70,13 +71,26 @@ launchctl bootout gui/$(id -u)/com.nbapredictor.daily     # turn it off
 
 The GitHub Action still runs but its build steps fail softly, so it just republishes the last committed data.
 
+## Accounts (Firebase)
+
+Sign in with Google or email/password, save bets from the Line Desk, and the **My Bets** tab grades them against the box scores once games are final (record, units, ROI, and the model's predicted hit rate vs the real one). Code: `web/src/account.js` (Firebase), `web/src/grade.js` (grading). Without a config the site works normally and the sign-in button explains it isn't set up.
+
+One-time setup in the [Firebase console](https://console.firebase.google.com):
+
+1. **Project settings → Your apps → Web app → SDK setup and configuration → Config.** Copy the values into `.env` (template: `.env.example`) and commit it. These values are public by design; security comes from the rules below.
+2. **Authentication → Sign-in method:** enable **Google** and **Email/Password**.
+3. **Authentication → Settings → Authorized domains:** add your Vercel domain (e.g. `your-app.vercel.app`). `localhost` is there already.
+4. **Firestore Database → Create database** (production mode), then **Rules:** paste `firestore.rules` and publish. Each user can only read and write their own bets.
+
+Vercel builds the site with `npm ci && npm run build` (see `vercel.json`).
+
 ## Tests
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
-The team Elo build and its tests need only the standard library. The props tests are skipped unless `requirements.txt` is installed.
+`npm test` checks the bet grading. The team Elo build and its tests need only the standard library. The props tests are skipped unless `requirements.txt` is installed.
 
 ## Using it from an app
 

@@ -43,6 +43,14 @@ jobs:
         continue-on-error: true
         run: python -m scripts.build_props
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Build site
+        run: npm ci && npm run build
+
       - name: Commit updated JSON
         run: |
           git config user.name  "github-actions[bot]"
@@ -53,7 +61,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: dist
 
   deploy:
     needs: build
