@@ -1,19 +1,23 @@
 [
   {
-    "team": "OKC",
-    "elo": 1718.1
-  },
-  {
     "team": "NYK",
-    "elo": 1697.2
+    "elo": 1700.0
   },
   {
     "team": "SAS",
-    "elo": 1686.2
+    "elo": 1688.4
+  },
+  {
+    "team": "OKC",
+    "elo": 1683.8
   },
   {
     "team": "DET",
-    "elo": 1644.7
+    "elo": 1648.7
+  },
+  {
+    "team": "HOU",
+    "elo": 1618.0
   },
   {
     "team": "BOS",
@@ -21,87 +25,83 @@
   },
   {
     "team": "MIN",
-    "elo": 1609.4
-  },
-  {
-    "team": "HOU",
-    "elo": 1605.3
-  },
-  {
-    "team": "CLE",
-    "elo": 1580.1
-  },
-  {
-    "team": "ATL",
-    "elo": 1575.7
+    "elo": 1595.3
   },
   {
     "team": "LAL",
-    "elo": 1573.7
+    "elo": 1590.3
   },
   {
-    "team": "CHA",
-    "elo": 1560.3
+    "team": "CLE",
+    "elo": 1581.7
   },
   {
     "team": "DEN",
-    "elo": 1559.4
+    "elo": 1569.5
+  },
+  {
+    "team": "TOR",
+    "elo": 1564.2
   },
   {
     "team": "POR",
     "elo": 1559.3
   },
   {
-    "team": "TOR",
-    "elo": 1550.1
+    "team": "CHA",
+    "elo": 1556.2
+  },
+  {
+    "team": "ATL",
+    "elo": 1554.5
   },
   {
     "team": "PHI",
-    "elo": 1548.6
+    "elo": 1554.1
   },
   {
     "team": "ORL",
-    "elo": 1542.5
-  },
-  {
-    "team": "LAC",
-    "elo": 1521.7
+    "elo": 1528.5
   },
   {
     "team": "PHX",
     "elo": 1511.1
   },
   {
+    "team": "LAC",
+    "elo": 1505.1
+  },
+  {
     "team": "MIA",
-    "elo": 1472.9
+    "elo": 1494.1
   },
   {
     "team": "GSW",
-    "elo": 1464.2
+    "elo": 1478.3
   },
   {
     "team": "DAL",
-    "elo": 1410.6
+    "elo": 1444.9
   },
   {
     "team": "NOP",
-    "elo": 1410.5
-  },
-  {
-    "team": "IND",
-    "elo": 1383.8
+    "elo": 1400.4
   },
   {
     "team": "MEM",
     "elo": 1379.2
   },
   {
+    "team": "IND",
+    "elo": 1378.4
+  },
+  {
     "team": "CHI",
-    "elo": 1368.5
+    "elo": 1365.8
   },
   {
     "team": "MIL",
-    "elo": 1365.3
+    "elo": 1352.6
   },
   {
     "team": "SAC",
@@ -109,11 +109,11 @@
   },
   {
     "team": "UTA",
-    "elo": 1313.6
+    "elo": 1311.4
   },
   {
     "team": "WAS",
-    "elo": 1295.3
+    "elo": 1293.7
   },
   {
     "team": "BKN",
