@@ -33,7 +33,7 @@
   },
   {
     "team": "CLE",
-    "elo": 1581.7
+    "elo": 1577.5
   },
   {
     "team": "DEN",
@@ -44,16 +44,12 @@
     "elo": 1564.2
   },
   {
-    "team": "POR",
-    "elo": 1559.3
+    "team": "ATL",
+    "elo": 1558.7
   },
   {
     "team": "CHA",
     "elo": 1556.2
-  },
-  {
-    "team": "ATL",
-    "elo": 1554.5
   },
   {
     "team": "PHI",
@@ -62,6 +58,10 @@
   {
     "team": "ORL",
     "elo": 1528.5
+  },
+  {
+    "team": "POR",
+    "elo": 1522.9
   },
   {
     "team": "PHX",
@@ -84,12 +84,12 @@
     "elo": 1444.9
   },
   {
-    "team": "NOP",
-    "elo": 1400.4
+    "team": "MEM",
+    "elo": 1415.6
   },
   {
-    "team": "MEM",
-    "elo": 1379.2
+    "team": "NOP",
+    "elo": 1406.2
   },
   {
     "team": "IND",
@@ -105,7 +105,7 @@
   },
   {
     "team": "SAC",
-    "elo": 1340.4
+    "elo": 1334.5
   },
   {
     "team": "UTA",

@@ -1,38 +1,5 @@
 [
   {
-    "game_id": "0022600144",
-    "date": "2026-10-29",
-    "home": "ATL",
-    "away": "CLE",
-    "home_elo": 1554.5,
-    "away_elo": 1581.7,
-    "home_win_prob": 0.6033,
-    "away_win_prob": 0.3967,
-    "home_spread": -2.6
-  },
-  {
-    "game_id": "0022600145",
-    "date": "2026-10-29",
-    "home": "NOP",
-    "away": "SAC",
-    "home_elo": 1400.4,
-    "away_elo": 1340.4,
-    "home_win_prob": 0.7153,
-    "away_win_prob": 0.2847,
-    "home_spread": -5.7
-  },
-  {
-    "game_id": "0022600146",
-    "date": "2026-10-29",
-    "home": "POR",
-    "away": "MEM",
-    "home_elo": 1559.3,
-    "away_elo": 1379.2,
-    "home_win_prob": 0.8338,
-    "away_win_prob": 0.1662,
-    "home_spread": -10.0
-  },
-  {
     "game_id": "0022600015",
     "date": "2026-10-30",
     "home": "WAS",
@@ -148,10 +115,10 @@
     "home": "UTA",
     "away": "POR",
     "home_elo": 1311.4,
-    "away_elo": 1559.3,
-    "home_win_prob": 0.2991,
-    "away_win_prob": 0.7009,
-    "home_spread": 5.3
+    "away_elo": 1522.9,
+    "home_win_prob": 0.3449,
+    "away_win_prob": 0.6551,
+    "home_spread": 4.0
   },
   {
     "game_id": "0022600148",
@@ -169,10 +136,10 @@
     "date": "2026-10-31",
     "home": "NOP",
     "away": "ATL",
-    "home_elo": 1400.4,
-    "away_elo": 1554.5,
-    "home_win_prob": 0.4227,
-    "away_win_prob": 0.5773,
+    "home_elo": 1406.2,
+    "away_elo": 1558.7,
+    "home_win_prob": 0.4251,
+    "away_win_prob": 0.5749,
     "home_spread": 1.9
   },
   {
@@ -180,11 +147,11 @@
     "date": "2026-10-31",
     "home": "MEM",
     "away": "SAC",
-    "home_elo": 1379.2,
-    "away_elo": 1340.4,
-    "home_win_prob": 0.6897,
-    "away_win_prob": 0.3103,
-    "home_spread": -5.0
+    "home_elo": 1415.6,
+    "away_elo": 1334.5,
+    "home_win_prob": 0.7393,
+    "away_win_prob": 0.2607,
+    "home_spread": -6.5
   },
   {
     "game_id": "0022600151",
@@ -192,10 +159,10 @@
     "home": "MIL",
     "away": "CLE",
     "home_elo": 1352.6,
-    "away_elo": 1581.7,
-    "home_win_prob": 0.3223,
-    "away_win_prob": 0.6777,
-    "home_spread": 4.6
+    "away_elo": 1577.5,
+    "home_win_prob": 0.3276,
+    "away_win_prob": 0.6724,
+    "home_spread": 4.5
   },
   {
     "game_id": "0022600152",
@@ -268,11 +235,11 @@
     "date": "2026-11-02",
     "home": "CLE",
     "away": "OKC",
-    "home_elo": 1581.7,
+    "home_elo": 1577.5,
     "away_elo": 1683.8,
-    "home_win_prob": 0.4969,
-    "away_win_prob": 0.5031,
-    "home_spread": 0.1
+    "home_win_prob": 0.4909,
+    "away_win_prob": 0.5091,
+    "home_spread": 0.2
   },
   {
     "game_id": "0022600159",
@@ -291,10 +258,10 @@
     "home": "IND",
     "away": "ATL",
     "home_elo": 1378.4,
-    "away_elo": 1554.5,
-    "home_win_prob": 0.3921,
-    "away_win_prob": 0.6079,
-    "home_spread": 2.7
+    "away_elo": 1558.7,
+    "home_win_prob": 0.3864,
+    "away_win_prob": 0.6136,
+    "home_spread": 2.9
   },
   {
     "game_id": "0022600161",
@@ -335,21 +302,21 @@
     "home": "DAL",
     "away": "SAC",
     "home_elo": 1444.9,
-    "away_elo": 1340.4,
-    "home_win_prob": 0.7645,
-    "away_win_prob": 0.2355,
-    "home_spread": -7.3
+    "away_elo": 1334.5,
+    "home_win_prob": 0.7705,
+    "away_win_prob": 0.2295,
+    "home_spread": -7.5
   },
   {
     "game_id": "0022600165",
     "date": "2026-11-02",
     "home": "MEM",
     "away": "NOP",
-    "home_elo": 1379.2,
-    "away_elo": 1400.4,
-    "home_win_prob": 0.6115,
-    "away_win_prob": 0.3885,
-    "home_spread": -2.8
+    "home_elo": 1415.6,
+    "away_elo": 1406.2,
+    "home_win_prob": 0.6523,
+    "away_win_prob": 0.3477,
+    "home_spread": -3.9
   },
   {
     "game_id": "0022600166",
@@ -390,10 +357,10 @@
     "home": "DEN",
     "away": "POR",
     "home_elo": 1569.5,
-    "away_elo": 1559.3,
-    "home_win_prob": 0.6535,
-    "away_win_prob": 0.3465,
-    "home_spread": -3.9
+    "away_elo": 1522.9,
+    "home_win_prob": 0.6993,
+    "away_win_prob": 0.3007,
+    "home_spread": -5.2
   },
   {
     "game_id": "0022600170",
@@ -445,10 +412,10 @@
     "home": "WAS",
     "away": "ATL",
     "home_elo": 1293.7,
-    "away_elo": 1554.5,
-    "home_win_prob": 0.2838,
-    "away_win_prob": 0.7162,
-    "home_spread": 5.7
+    "away_elo": 1558.7,
+    "home_win_prob": 0.2789,
+    "away_win_prob": 0.7211,
+    "home_spread": 5.9
   },
   {
     "game_id": "0022600175",
@@ -488,22 +455,22 @@
     "date": "2026-11-04",
     "home": "MEM",
     "away": "IND",
-    "home_elo": 1379.2,
+    "home_elo": 1415.6,
     "away_elo": 1378.4,
-    "home_win_prob": 0.6411,
-    "away_win_prob": 0.3589,
-    "home_spread": -3.6
+    "home_win_prob": 0.6878,
+    "away_win_prob": 0.3122,
+    "home_spread": -4.9
   },
   {
     "game_id": "0022600179",
     "date": "2026-11-04",
     "home": "NOP",
     "away": "UTA",
-    "home_elo": 1400.4,
+    "home_elo": 1406.2,
     "away_elo": 1311.4,
-    "home_win_prob": 0.7479,
-    "away_win_prob": 0.2521,
-    "home_spread": -6.7
+    "home_win_prob": 0.7543,
+    "away_win_prob": 0.2457,
+    "home_spread": -7.0
   },
   {
     "game_id": "0022600180",
@@ -511,10 +478,10 @@
     "home": "OKC",
     "away": "CLE",
     "home_elo": 1683.8,
-    "away_elo": 1581.7,
-    "home_win_prob": 0.762,
-    "away_win_prob": 0.238,
-    "home_spread": -7.2
+    "away_elo": 1577.5,
+    "home_win_prob": 0.7664,
+    "away_win_prob": 0.2336,
+    "home_spread": -7.4
   },
   {
     "game_id": "0022600181",
@@ -544,10 +511,10 @@
     "home": "PHX",
     "away": "POR",
     "home_elo": 1511.1,
-    "away_elo": 1559.3,
-    "home_win_prob": 0.5739,
-    "away_win_prob": 0.4261,
-    "home_spread": -1.8
+    "away_elo": 1522.9,
+    "home_win_prob": 0.6242,
+    "away_win_prob": 0.3758,
+    "home_spread": -3.1
   },
   {
     "game_id": "0022600184",
@@ -565,11 +532,11 @@
     "date": "2026-11-04",
     "home": "SAC",
     "away": "LAL",
-    "home_elo": 1340.4,
+    "home_elo": 1334.5,
     "away_elo": 1590.3,
-    "home_win_prob": 0.2967,
-    "away_win_prob": 0.7033,
-    "home_spread": 5.4
+    "home_win_prob": 0.2897,
+    "away_win_prob": 0.7103,
+    "home_spread": 5.6
   },
   {
     "game_id": "0022600186",
@@ -603,5 +570,104 @@
     "home_win_prob": 0.6189,
     "away_win_prob": 0.3811,
     "home_spread": -3.0
+  },
+  {
+    "game_id": "0022600025",
+    "date": "2026-11-06",
+    "home": "ATL",
+    "away": "WAS",
+    "home_elo": 1558.7,
+    "away_elo": 1293.7,
+    "home_win_prob": 0.891,
+    "away_win_prob": 0.109,
+    "home_spread": -13.0
+  },
+  {
+    "game_id": "0022600026",
+    "date": "2026-11-06",
+    "home": "CHA",
+    "away": "BOS",
+    "home_elo": 1556.2,
+    "away_elo": 1616.5,
+    "home_win_prob": 0.5569,
+    "away_win_prob": 0.4431,
+    "home_spread": -1.4
+  },
+  {
+    "game_id": "0022600027",
+    "date": "2026-11-06",
+    "home": "CLE",
+    "away": "PHI",
+    "home_elo": 1577.5,
+    "away_elo": 1554.1,
+    "home_win_prob": 0.6705,
+    "away_win_prob": 0.3295,
+    "home_spread": -4.4
+  },
+  {
+    "game_id": "0022600028",
+    "date": "2026-11-06",
+    "home": "DAL",
+    "away": "UTA",
+    "home_elo": 1444.9,
+    "away_elo": 1311.4,
+    "home_win_prob": 0.7931,
+    "away_win_prob": 0.2069,
+    "home_spread": -8.3
+  },
+  {
+    "game_id": "0022600029",
+    "date": "2026-11-06",
+    "home": "MEM",
+    "away": "OKC",
+    "home_elo": 1415.6,
+    "away_elo": 1683.8,
+    "home_win_prob": 0.2752,
+    "away_win_prob": 0.7248,
+    "home_spread": 6.0
+  },
+  {
+    "game_id": "0022600030",
+    "date": "2026-11-06",
+    "home": "MIL",
+    "away": "TOR",
+    "home_elo": 1352.6,
+    "away_elo": 1564.2,
+    "home_win_prob": 0.3447,
+    "away_win_prob": 0.6553,
+    "home_spread": 4.0
+  },
+  {
+    "game_id": "0022600031",
+    "date": "2026-11-06",
+    "home": "NOP",
+    "away": "MIN",
+    "home_elo": 1406.2,
+    "away_elo": 1595.3,
+    "home_win_prob": 0.3746,
+    "away_win_prob": 0.6254,
+    "home_spread": 3.2
+  },
+  {
+    "game_id": "0022600032",
+    "date": "2026-11-06",
+    "home": "LAL",
+    "away": "POR",
+    "home_elo": 1590.3,
+    "away_elo": 1522.9,
+    "home_win_prob": 0.7238,
+    "away_win_prob": 0.2762,
+    "home_spread": -6.0
+  },
+  {
+    "game_id": "0022600033",
+    "date": "2026-11-06",
+    "home": "SAC",
+    "away": "SAS",
+    "home_elo": 1334.5,
+    "away_elo": 1688.4,
+    "home_win_prob": 0.1883,
+    "away_win_prob": 0.8117,
+    "home_spread": 9.1
   }
 ]

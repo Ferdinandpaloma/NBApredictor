@@ -1,11 +1,11 @@
 {
-  "built_at": "2026-10-29T16:09:33Z",
+  "built_at": "2026-10-30T16:07:39Z",
   "season": "2026-27",
   "record": {
-    "n": 68,
-    "correct": 41,
-    "hit": 0.6029,
-    "avg_p": 0.7127,
+    "n": 71,
+    "correct": 43,
+    "hit": 0.6056,
+    "avg_p": 0.7129,
     "by_conf": [
       {
         "lo": 0.5,
@@ -18,30 +18,72 @@
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 16,
-        "correct": 9,
-        "hit": 0.5625,
-        "avg_p": 0.6569
+        "n": 17,
+        "correct": 10,
+        "hit": 0.5882,
+        "avg_p": 0.6537
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 19,
-        "correct": 11,
-        "hit": 0.5789,
-        "avg_p": 0.7436
+        "n": 20,
+        "correct": 12,
+        "hit": 0.6,
+        "avg_p": 0.7422
       },
       {
         "lo": 0.8,
         "hi": 1.0,
-        "n": 18,
+        "n": 19,
         "correct": 14,
-        "hit": 0.7778,
-        "avg_p": 0.8547
+        "hit": 0.7368,
+        "avg_p": 0.8536
       }
     ]
   },
   "games": [
+    {
+      "game_id": "0022600146",
+      "date": "2026-10-29",
+      "season": "2026-27",
+      "home": "POR",
+      "away": "MEM",
+      "home_pts": 103,
+      "away_pts": 124,
+      "home_spread": -10.0,
+      "pick": "POR",
+      "p": 0.8338,
+      "winner": "MEM",
+      "correct": false
+    },
+    {
+      "game_id": "0022600145",
+      "date": "2026-10-29",
+      "season": "2026-27",
+      "home": "NOP",
+      "away": "SAC",
+      "home_pts": 132,
+      "away_pts": 120,
+      "home_spread": -5.7,
+      "pick": "NOP",
+      "p": 0.7153,
+      "winner": "NOP",
+      "correct": true
+    },
+    {
+      "game_id": "0022600144",
+      "date": "2026-10-29",
+      "season": "2026-27",
+      "home": "ATL",
+      "away": "CLE",
+      "home_pts": 114,
+      "away_pts": 111,
+      "home_spread": -2.6,
+      "pick": "ATL",
+      "p": 0.6033,
+      "winner": "ATL",
+      "correct": true
+    },
     {
       "game_id": "0022600143",
       "date": "2026-10-28",
