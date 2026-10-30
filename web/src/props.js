@@ -22,6 +22,14 @@ document.addEventListener("error", e => { if (e.target.matches?.(".face img")) e
 let INJ = null;  // Map of name key -> report entry
 const injOf = (name, fallback) => INJ ? INJ.get(nameKey(name)) || null : fallback || null;
 const backBy = d => d ? new Date(d + "T12:00:00").toLocaleDateString(undefined, { month:"short", day:"numeric" }) : "";
+// Regulars (20+ minutes) ruled out of this game on either side: the projection already accounts for them.
+function missingNote(p) {
+  const side = t => P.players.filter(x => x.game_id === p.game_id && x.team === t && x.id !== p.id && x.likely_out
+    && (x.proj.min[0] || 0) >= 20).map(x => esc(x.name));
+  const parts = [p.team, p.opp].map(t => [t, side(t)]).filter(([, n]) => n.length)
+    .map(([t, n]) => `${logo(t)}${t} without ${n.join(", ")}`);
+  return parts.length ? `<div class="small-note">Projection accounts for who's ruled out: ${parts.join(" · ")}.</div>` : "";
+}
 function injTag(i) {
   if (!i) return "";
   const out = i.status === "Out", label = out ? "Out" : i.status === "Day-To-Day" ? "DTD" : i.status;
@@ -414,6 +422,7 @@ function renderSlip() {
     <div class="slip-body">
       ${(i => i ? `<div class="warn"><b>${esc(i.status)}${i.injury ? ` (${esc(i.injury)})` : ""}.</b> ${esc(i.note)}${i.return ? ` Expected back around ${backBy(i.return)}.` : ""}</div>`
         : p.likely_out ? `<div class="warn"><b>Likely out.</b> ${esc(p.name)} has missed their team's last 3+ games. Check the injury report before betting.</div>` : "")(injOf(p.name, p.injury))}
+      ${missingNote(p)}
       ${ev}
       ${betbox}
       <div class="facts">
@@ -426,7 +435,7 @@ function renderSlip() {
       ${distChart(s, D, L)}
       <h3 class="sub" style="margin-top:18px">Recent games vs ${L}<small id="hitrate"></small></h3>
       <div class="recent" id="recent"><span class="muted" style="font-weight:400">Loading…</span></div>
-      <p class="note">The model can't see injury news or tonight's starting lineups. Treat edges under ~5 points as noise.</p>
+      <p class="note">The model reads the morning injury report, but not late scratches, day-to-day decisions or starting lineups. Treat edges under ~5 points as noise.</p>
     </div></div>`;
   $("bside").onclick = e => { const b = e.target.closest("button"); if (b) { d.bet.side = b.dataset.s; renderSlip(); } };
   $("bstake").oninput = e => { d.bet.stake = e.target.value; };

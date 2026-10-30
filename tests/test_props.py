@@ -136,6 +136,34 @@ class PropsTests(unittest.TestCase):
         self.assertTrue(out["AAA0"])
         self.assertFalse(out["AAA1"])
 
+    def test_missing_tonight_both_sides(self):
+        rows = log_rows()
+        nxt = [{"game_id": "x", "date": "2025-12-31", "season": "2025-26", "team": t, "opp": o, "home": h}
+               for t, o, h in (("AAA", "BBB", 1), ("BBB", "AAA", 0))]
+        cands = props.candidates(props.to_frame(rows), nxt)
+        df = props.build_features(props.to_frame(rows + cands), {})
+        fut = df[df["future"]].set_index("player_id")
+        self.assertTrue((fut["out_pts"] == 0).all() and (fut["opp_out_pts"] == 0).all())
+        # AAA0 (30 minutes a game) is ruled out tonight.
+        from nbaelo import injuries
+        for c in cands:
+            c["player"] = {"AAA0": "Star Guard", "BBB0": "Other Guard"}.get(c["player_id"], c["player_id"])
+        n = injuries.mark_out(cands, [{"key": "star guard", "status": "Out"},
+                                      {"key": "other guard", "status": "Day-To-Day"}])
+        self.assertEqual(n, 1)
+        df = props.build_features(props.to_frame(rows + cands), {})
+        fut = df[df["future"]].set_index("player_id")
+        self.assertGreater(fut.at["AAA1", "out_pts"], 20)    # teammates know he's missing
+        self.assertEqual(fut.at["AAA1", "out_n"], 1)
+        self.assertGreater(fut.at["BBB0", "opp_out_pts"], 20)  # and so do opponents
+        self.assertEqual(fut.at["BBB0", "out_pts"], 0)
+        # In past games, "missing" comes from the box score: drop AAA0 from the last one.
+        past = [r for r in rows if not (r["player_id"] == "AAA0" and r["game_id"] == rows[-1]["game_id"])]
+        df = props.build_features(props.to_frame(past), {})
+        last = df[df["game_id"] == rows[-1]["game_id"]].set_index("player_id")
+        self.assertEqual(last.at["AAA1", "out_n"], 1)
+        self.assertEqual(last.at["BBB0", "opp_out_n"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

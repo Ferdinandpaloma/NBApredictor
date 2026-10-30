@@ -44,6 +44,17 @@ def parse(raw: dict) -> list[dict]:
     return out
 
 
+def mark_out(rows: list[dict], report: list[dict]) -> int:
+    """Flag projection rows (keyed "player") whose player is ruled Out. Returns how many."""
+    out = {r["key"] for r in report if r["status"] == "Out"}
+    n = 0
+    for row in rows:
+        if name_key(row["player"]) in out:
+            row["out"] = True
+            n += 1
+    return n
+
+
 def apply(players: list[dict], report: list[dict]) -> int:
     """Attach each listed player's status; anyone ruled Out is marked likely out. Returns matches."""
     by_key = {r["key"]: r for r in report}

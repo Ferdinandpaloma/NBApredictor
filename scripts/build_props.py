@@ -123,6 +123,15 @@ def main() -> None:
     nxt = next_games(upcoming)
     base = props.to_frame(logs)
     cands = props.candidates(base, nxt)
+    # Tonight's injury report goes into the features: who's out changes teammates' and
+    # opponents' projections. It's saved, with headlines and transactions, as the News
+    # tab's fallback when ESPN can't be reached live.
+    news = {"built_at": now_iso()}
+    try:
+        news["injuries"] = injuries.parse(injuries.fetch())
+        print(f"injury report: {injuries.mark_out(cands, news['injuries'])} projected players ruled out")
+    except Exception as e:  # noqa: BLE001 - the build shouldn't fail over it
+        print(f"injury report unavailable: {e}")
     df = props.build_features(props.to_frame(logs + cands), spreads)
     print(f"{len(logs)} player-games, {len(cands)} players to project")
 
@@ -143,19 +152,14 @@ def main() -> None:
             "opp": row["opp"], "home": int(row["home"]), "game_id": row["game_id"],
             "date": row["date"].strftime("%Y-%m-%d"), "likely_out": bool(row["likely_out"]),
             "gp": int(row["gp"]), "spread": r(row["spread"]),
+            "without": [r(row["out_pts"]), r(row["opp_out_pts"])],  # scoring missing: own team, opponent
             "proj": {t: [r(mu[t], 2), r(props.dist_param(disp[t], mu[t]), 5)] for t in props.TARGETS},
             "l10": {t: r(row[f"{t}_l10"]) for t in props.TARGETS},
             "e5": {t: r(row[f"{t}_e5"], 2) for t in props.TARGETS},
             "sea": {t: r(row[f"{t}_sea"]) for t in props.TARGETS},
         })
-    # The injury report: players ruled out are flagged, so the picks skip them. It's saved,
-    # with headlines and transactions, as the News tab's fallback when ESPN can't be reached live.
-    news = {"built_at": now_iso()}
-    try:
-        news["injuries"] = injuries.parse(injuries.fetch())
+    if "injuries" in news:  # attach statuses; anyone ruled out is skipped by the picks
         print(f"injury report: {injuries.apply(players, news['injuries'])} projected players listed")
-    except Exception as e:  # noqa: BLE001 - the build shouldn't fail over it
-        print(f"injury report unavailable: {e}")
     for key, path, parse in (("news", "news?limit=40", wire.parse_news),
                              ("transactions", "transactions", wire.parse_transactions)):
         try:

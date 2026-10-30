@@ -41,8 +41,8 @@ cdn.nba.com feed  ─┘                 site/ratings.json
 `web/props.html` projects every rotation player's next game: points, rebounds, assists, 3PM, steals, blocks, turnovers, shooting, minutes, and the combo markets (PRA, P+R, P+A, R+A, S+B). Enter a sportsbook line (and optionally the odds) to get P(over)/P(under), fair odds and expected value. Every player since 2018-19 has a page with season averages and a full game log.
 
 - **`nbaelo/players.py`**: box scores. History in `data/player_logs.csv`; new games come from the CDN box score feed, which works from GitHub Actions.
-- **`nbaelo/props.py`**: the model. Features use only earlier games: recent form (exponentially weighted, last 10, season), per-minute rates × projected minutes, opponent defense vs the league for that stat, pace, rest/back-to-backs, Elo spread (blowout risk), and teammates who sat. One gradient-boosted model per stat predicts the mean. A negative binomial around it, with dispersion fitted on out-of-sample games, gives the probabilities.
-- **Rotation / injuries**: players are listed if they averaged 10+ minutes in the team's last 10 games. Anyone who missed the last 3 is flagged "likely out". There's no injury feed, so always check news before betting.
+- **`nbaelo/props.py`**: the model. Features use only earlier games: recent form (exponentially weighted, last 10, season), per-minute rates × projected minutes, opponent defense vs the league for that stat, pace, rest/back-to-backs, Elo spread (blowout risk), and who's missing on both teams: scoring and minutes of regulars (20+ min) who aren't playing, from the box score for past games and the morning injury report for upcoming ones. One gradient-boosted model per stat predicts the mean. A negative binomial around it, with dispersion fitted on out-of-sample games, gives the probabilities.
+- **Rotation / injuries**: players are listed if they averaged 10+ minutes in the team's last 10 games. Anyone who missed the last 3 is flagged "likely out". Players the injury report rules Out are flagged too; late scratches still aren't known, so check news before betting.
 
 ```bash
 pip install -r requirements.txt
@@ -81,7 +81,7 @@ The line for each pick is the half point where recent form alone is closest to 5
 
 The **News** tab shows ESPN's NBA headlines, injury report and transactions, read live in the browser from ESPN's public feeds (`web/src/news.js`) and refreshed every 5 minutes while open. The morning build also saves a copy to `site/news.json` (`nbaelo/wire.py`, `nbaelo/injuries.py`), which the page falls back to if the live feed can't be reached.
 
-The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Projections don't yet raise teammates' minutes when someone sits.
+The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Regulars ruled Out also feed the projections: teammates' minutes and stats go up, and opponents get the matchup against a weakened lineup. In the backtest (2023-24 to 2025-26) this cut points error from 4.55 to 4.48, PRA from 5.98 to 5.84 and minutes from 4.86 to 4.64.
 
 ## Team picks record
 
