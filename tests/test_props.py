@@ -165,8 +165,34 @@ class PropsTests(unittest.TestCase):
         self.assertEqual(last.at["BBB0", "opp_out_n"], 1)
 
 
-if __name__ == "__main__":
-    unittest.main()
+
+    def test_matchup_features(self):
+        from nbaelo import matchups
+        import pandas as pd
+        rows = log_rows(50)
+        # BBB0 is a stopper: AAA players score 1 per 10 possessions on him, 6 on BBB1.
+        mu = pd.DataFrame([
+            {"game_id": g, "off_id": o, "def_id": d, "poss": 10.0, "pts": pts, "ast": 1, "fg3m": 0}
+            for g in sorted({r["game_id"] for r in rows})
+            for o in ("AAA0", "AAA1") for d, pts in (("BBB0", 1), ("BBB1", 6))])
+        nxt = [{"game_id": "x", "date": "2026-01-31", "season": "2025-26", "team": t, "opp": o, "home": h}
+               for t, o, h in (("AAA", "BBB", 1), ("BBB", "AAA", 0))]
+        cands = props.candidates(props.to_frame(rows), nxt)
+        df = props.to_frame(rows + cands)
+        f = matchups.features(df, mu)
+        fut = df["future"] & (df["player_id"] == "AAA1")
+        both = f.loc[fut, "mdef_pts"].iloc[0]
+        self.assertTrue(0.8 < both < 1.2)            # half on each: about average
+        for c in cands:
+            c["out"] = c["player_id"] == "BBB1"       # the easy defender sits tonight
+        df = props.to_frame(rows + cands)
+        f = matchups.features(df, mu)
+        self.assertLess(f.loc[fut, "mdef_pts"].iloc[0], 0.6)
+        self.assertTrue(f.loc[df["player_id"] == "BBB0", "mdef_pts"].isna().all())  # nobody guarded BBB
+        # A game's own matchups never feed its features.
+        last = df["game_id"] == rows[-1]["game_id"]
+        mu2 = mu.assign(pts=np.where(mu["game_id"] == rows[-1]["game_id"], 99, mu["pts"]))
+        self.assertTrue(f[last].equals(matchups.features(df, mu2)[last]))
 
 
 class InjuryTests(unittest.TestCase):
@@ -201,3 +227,7 @@ class WireTests(unittest.TestCase):
         self.assertEqual((news[0]["image"], news[0]["teams"]), ("https://img", ["Utah Jazz"]))
         tx = wire.parse_transactions({"transactions": [{"date": "d", "team": {"abbreviation": "UTAH"}, "description": "Signed X."}]})
         self.assertEqual(tx, [{"date": "d", "team": "UTA", "text": "Signed X."}])
+
+
+if __name__ == "__main__":
+    unittest.main()
