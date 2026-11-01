@@ -1,39 +1,39 @@
 [
   {
+    "team": "SAS",
+    "elo": 1693.0
+  },
+  {
     "team": "NYK",
     "elo": 1691.7
   },
   {
-    "team": "SAS",
-    "elo": 1688.4
-  },
-  {
     "team": "OKC",
-    "elo": 1683.8
+    "elo": 1668.4
   },
   {
     "team": "DET",
     "elo": 1652.9
   },
   {
+    "team": "HOU",
+    "elo": 1624.4
+  },
+  {
     "team": "BOS",
     "elo": 1618.9
   },
   {
-    "team": "HOU",
-    "elo": 1609.0
+    "team": "MIN",
+    "elo": 1599.2
   },
   {
-    "team": "MIN",
-    "elo": 1603.9
+    "team": "CLE",
+    "elo": 1588.9
   },
   {
     "team": "DEN",
     "elo": 1579.3
-  },
-  {
-    "team": "CLE",
-    "elo": 1577.5
   },
   {
     "team": "LAL",
@@ -41,11 +41,7 @@
   },
   {
     "team": "PHI",
-    "elo": 1562.3
-  },
-  {
-    "team": "ATL",
-    "elo": 1558.7
+    "elo": 1571.3
   },
   {
     "team": "TOR",
@@ -56,12 +52,16 @@
     "elo": 1541.4
   },
   {
-    "team": "CHA",
-    "elo": 1533.0
+    "team": "ATL",
+    "elo": 1537.7
   },
   {
     "team": "POR",
-    "elo": 1522.9
+    "elo": 1534.0
+  },
+  {
+    "team": "CHA",
+    "elo": 1524.1
   },
   {
     "team": "PHX",
@@ -84,12 +84,12 @@
     "elo": 1453.9
   },
   {
-    "team": "MEM",
-    "elo": 1415.6
+    "team": "NOP",
+    "elo": 1427.3
   },
   {
-    "team": "NOP",
-    "elo": 1406.2
+    "team": "MEM",
+    "elo": 1425.8
   },
   {
     "team": "IND",
@@ -101,11 +101,11 @@
   },
   {
     "team": "MIL",
-    "elo": 1352.6
+    "elo": 1341.2
   },
   {
     "team": "SAC",
-    "elo": 1334.5
+    "elo": 1324.3
   },
   {
     "team": "WAS",
@@ -113,7 +113,7 @@
   },
   {
     "team": "UTA",
-    "elo": 1311.4
+    "elo": 1300.3
   },
   {
     "team": "BKN",
