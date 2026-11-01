@@ -1,5 +1,9 @@
+import { inject } from "@vercel/analytics";
 import { TEAM_NAMES, loadInjuries, loadNews, loadTransactions, nameKey } from "./news.js";
 import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
+
+// Vercel Web Analytics: page views, counted without cookies. Does nothing off Vercel.
+inject();
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
