@@ -1,9 +1,10 @@
-import { inject } from "@vercel/analytics";
+import { inject, pageview } from "@vercel/analytics";
 import { TEAM_NAMES, loadInjuries, loadNews, loadTransactions, nameKey } from "./news.js";
 import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
 
 // Vercel Web Analytics: page views, counted without cookies. Does nothing off Vercel.
-inject();
+// Tabs don't load new pages, so each tab opened is logged as its own view (see go()).
+inject({ disableAutoTrack:true });
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -205,7 +206,9 @@ const fileRows = f => f.log.map(r => Object.fromEntries(f.cols.map((c, i) => [c,
 
 // ---------- navigation ----------
 $("nav").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
+let viewed = "";  // last tab logged to analytics
 function go(tab) {
+  if (viewed !== tab) { viewed = tab; pageview({ route:"/props/" + tab, path:"/props/" + tab }); }
   S.tab = tab;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
