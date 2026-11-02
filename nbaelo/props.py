@@ -6,7 +6,10 @@ defense, pace, rest, Elo spread, and who is missing tonight on both teams.
 A gradient-boosted
 model per stat predicts the mean. A negative binomial around that mean,
 with dispersion fitted on out-of-sample games, turns it into P(over line).
-Minutes use a normal distribution instead.
+Minutes use a normal distribution instead. A per-stat calibration, also fitted
+out of sample, corrects what's left of the lean: logit(P') = a*logit(P) + b
+applied to P(stat > x) at every half point (so it reshapes the whole
+distribution consistently; the site applies the same to the lines you enter).
 """
 from __future__ import annotations
 
@@ -268,20 +271,56 @@ def dist_param(disp: dict, mu: np.ndarray) -> np.ndarray:
     return np.interp(mu, disp["mu"], disp["param"])
 
 
-def p_over(t: str, mu, param, line):
-    """P(stat > line). For a whole-number line a push (== line) is neither."""
+def p_over(t: str, mu, param, line, cal=None):
+    """P(stat > line). For a whole-number line a push (== line) is neither.
+    With `cal` (a, b) the probability is calibrated."""
     from scipy import stats
     mu, param, line = np.asarray(mu, float), np.asarray(param, float), np.asarray(line, float)
     if t == "min":
-        return stats.norm.sf(line, loc=mu, scale=param)
-    n = 1.0 / param
-    p = n / (n + np.maximum(mu, 1e-6))
-    return stats.nbinom.sf(np.floor(line), n, p)
+        p = stats.norm.sf(line, loc=mu, scale=param)
+    else:
+        n = 1.0 / param
+        p = stats.nbinom.sf(np.floor(line), n, n / (n + np.maximum(mu, 1e-6)))
+    return calibrate(p, cal) if cal else p
+
+
+def calibrate(p, cal):
+    p = np.clip(p, 1e-9, 1 - 1e-9)
+    return 1.0 / (1.0 + np.exp(-(cal[0] * np.log(p / (1 - p)) + cal[1])))
+
+
+def cal_lines(df: pd.DataFrame, t: str, mu: np.ndarray) -> list[np.ndarray]:
+    """Half-point lines like the ones bettors see: near recent form and near the projection."""
+    return [np.floor(np.nan_to_num(df[c].to_numpy(float), nan=m)) + 0.5
+            for c, m in ((f"{t}_l10", mu), (f"{t}_e5", mu))] + [np.floor(mu) + 0.5]
+
+
+def fit_cal(t: str, df: pd.DataFrame, mu: np.ndarray, disp: dict) -> list[float]:
+    """Logistic regression of over/under results on logit P(over), out-of-sample rows."""
+    y_all = df[t].to_numpy(float)
+    param = dist_param(disp, mu)
+    x, y = [], []
+    for line in cal_lines(df, t, mu):
+        p = np.clip(p_over(t, mu, param, line), 1e-6, 1 - 1e-6)
+        x.append(np.log(p / (1 - p)))
+        y.append((y_all > line).astype(float))
+    x, y = np.concatenate(x), np.concatenate(y)
+    a, b = 1.0, 0.0
+    for _ in range(30):
+        q = 1.0 / (1.0 + np.exp(-(a * x + b)))
+        w = q * (1 - q)
+        g = np.array([((y - q) * x).sum(), (y - q).sum()])
+        h = np.array([[(w * x * x).sum(), (w * x).sum()], [(w * x).sum(), w.sum()]])
+        step = np.linalg.solve(h, g)
+        a, b = a + step[0], b + step[1]
+        if np.abs(step).sum() < 1e-9:
+            break
+    return [round(float(a), 4), round(float(b), 4)]
 
 
 # ---------------------------------------------------------------- evaluation
 
-def _metrics(t: str, test: pd.DataFrame, mu: np.ndarray, disp: dict) -> dict:
+def _metrics(t: str, test: pd.DataFrame, mu: np.ndarray, disp: dict, cal=None) -> dict:
     y = test[t].to_numpy(float)
     base = {
         "season_avg": test[f"{t}_sea"].fillna(test[f"{t}_e20"]).to_numpy(float),
@@ -294,9 +333,11 @@ def _metrics(t: str, test: pd.DataFrame, mu: np.ndarray, disp: dict) -> dict:
         out[f"mae_{k}"] = round(float(np.mean(np.abs(y - b))), 3)
     # Over/under at a stand-in book line: last-10 average, rounded to a half.
     line = np.floor(base["last10"]) + 0.5
-    p = p_over(t, mu, dist_param(disp, mu), line)
+    raw = p_over(t, mu, dist_param(disp, mu), line)
+    p = calibrate(raw, cal) if cal else raw
     hit = (y > line).astype(float)
     out["brier"] = round(float(np.mean((p - hit) ** 2)), 4)
+    out["brier_raw"] = round(float(np.mean((raw - hit) ** 2)), 4)
     out["brier_coin"] = round(float(np.mean((hit.mean() - hit) ** 2)), 4)
     out["calibration"] = [
         {"p": round(float(p[s].mean()), 3), "hit": round(float(hit[s].mean()), 3), "n": int(s.sum())}
@@ -310,16 +351,16 @@ def backtest(df: pd.DataFrame, test_seasons: list[str], targets: list[str] = TAR
              log=print) -> dict:
     """Walk forward: for each season S, train on seasons before S and score S.
 
-    Each season's dispersion comes from the *previous* season's out-of-sample
-    errors, so P(over) is never tuned on the games it's scored on. That means
-    one extra warm-up season before the first one reported.
+    Each season's dispersion and calibration come from the *previous* season's
+    out-of-sample errors, so P(over) is never tuned on the games it's scored
+    on. That means one extra warm-up season before the first one reported.
     """
     rows = trainable(df).dropna(subset=["min_e20"])
     seasons = sorted(rows["season"].unique())
     first = seasons.index(test_seasons[0])
     warm = seasons[first - 1]
     results: dict[str, list] = defaultdict(list)
-    prev = {}
+    prev, prev_cal = {}, {}
     for s in [warm] + test_seasons:
         train, test = rows[rows["season"] < s], rows[rows["season"] == s]
         log(f"  backtest {s}: train {len(train)}, test {len(test)}")
@@ -328,8 +369,9 @@ def backtest(df: pd.DataFrame, test_seasons: list[str], targets: list[str] = TAR
         for t in targets:
             m = mu[t].to_numpy()
             if t in prev:
-                results[t].append(_metrics(t, test, m, prev[t]))
+                results[t].append(_metrics(t, test, m, prev[t], prev_cal[t]))
             prev[t] = fit_dispersion(t, m, test[t].to_numpy(float))
+            prev_cal[t] = fit_cal(t, test, m, prev[t])
     return {t: _pool(v) for t, v in results.items()}
 
 
@@ -356,12 +398,13 @@ def _pool(folds: list[dict]) -> dict:
     return out
 
 
-def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict, pd.DataFrame, pd.DataFrame]:
+def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict, dict, pd.DataFrame, pd.DataFrame]:
     """Fit on all finished games and project the future rows.
 
-    Dispersion comes from a model trained on seasons before the last complete
-    one and scored on everything since (out of sample). Returns
-    (projections, dispersion, last complete season's rows, their out-of-sample means).
+    Dispersion and calibration come from a model trained on seasons before the
+    last complete one and scored on everything since (out of sample). Returns
+    (projections, dispersion, calibration, last complete season's rows, their
+    out-of-sample means).
     """
     rows = trainable(df).dropna(subset=["min_e20"])
     future = df[df["future"]]
@@ -372,9 +415,10 @@ def train_and_project(df: pd.DataFrame, log=print) -> tuple[pd.DataFrame, dict, 
     log(f"dispersion fit: train {len(train)}, holdout {len(hold)}")
     hold_mu = predict(fit(train), hold)
     disp = {t: fit_dispersion(t, hold_mu[t].to_numpy(), hold[t].to_numpy(float)) for t in TARGETS}
+    cal = {t: fit_cal(t, hold, hold_mu[t].to_numpy(), disp[t]) for t in TARGETS}
 
     log(f"final fit on {len(rows)} player-games")
     models = fit(rows)
     proj = predict(models, future) if len(future) else pd.DataFrame(columns=TARGETS)
     last = hold["season"] == holdout_from
-    return proj, disp, hold[last], hold_mu[last]
+    return proj, disp, cal, hold[last], hold_mu[last]

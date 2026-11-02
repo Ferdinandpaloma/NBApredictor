@@ -3,6 +3,11 @@
 Each team starts at 1500. After every game the winner takes rating points
 from the loser; upsets and blowouts move ratings more. Between seasons,
 ratings regress partway back toward the mean.
+
+Raw Elo is overconfident (its 75-80% picks won ~70%) and gives home court
+too much weight since 2020, so published probabilities go through a
+calibration fitted on earlier seasons only: logit(p') = a * logit(p) + b.
+Ratings themselves still update from the raw probabilities.
 """
 from __future__ import annotations
 
@@ -38,6 +43,46 @@ def win_prob(home_elo: float, away_elo: float, neutral: bool = False) -> float:
     return 1.0 / (1.0 + 10 ** (-diff / 400.0))
 
 
+Calibration = tuple[float, float]  # (a, b): logit(p') = a * logit(p) + b
+IDENTITY: Calibration = (1.0, 0.0)
+
+
+def _logit(p: float) -> float:
+    p = min(max(p, 1e-9), 1 - 1e-9)
+    return math.log(p / (1 - p))
+
+
+def calibrate(p: float, cal: Calibration = IDENTITY) -> float:
+    return 1.0 / (1.0 + math.exp(-(cal[0] * _logit(p) + cal[1])))
+
+
+def spread_for(p: float) -> float:
+    """Home spread (negative = home favored) implied by a home win probability."""
+    return -(400.0 / math.log(10)) * _logit(p) / ELO_PER_POINT
+
+
+def fit_calibration(pairs: list[tuple[float, int]]) -> Calibration:
+    """Logistic regression of the result on the raw prediction's logit (Newton's method).
+    `pairs` are (raw home win prob, home won 0/1)."""
+    if len(pairs) < 100:
+        return IDENTITY
+    a, b = 1.0, 0.0
+    xs = [(_logit(p), y) for p, y in pairs]
+    for _ in range(25):
+        ga = gb = haa = hab = hbb = 0.0
+        for x, y in xs:
+            q = 1.0 / (1.0 + math.exp(-(a * x + b)))
+            w = q * (1 - q)
+            ga, gb = ga + (y - q) * x, gb + (y - q)
+            haa, hab, hbb = haa + w * x * x, hab + w * x, hbb + w
+        det = haa * hbb - hab * hab
+        da, db = (hbb * ga - hab * gb) / det, (haa * gb - hab * ga) / det
+        a, b = a + da, b + db
+        if abs(da) + abs(db) < 1e-9:
+            break
+    return (round(a, 4), round(b, 4))
+
+
 def mov_multiplier(margin: int, winner_elo_diff: float) -> float:
     """Bigger wins count more, but less so when a heavy favorite wins big."""
     return ((abs(margin) + 3) ** 0.8) / (7.5 + 0.006 * winner_elo_diff)
@@ -58,16 +103,15 @@ class EloModel:
                 self.ratings[t] = MEAN + SEASON_CARRY * (r - MEAN)
         self.season = season
 
-    def predict(self, g: Game) -> dict:
+    def predict(self, g: Game, cal: Calibration = IDENTITY) -> dict:
         h, a = self.rating(g.home), self.rating(g.away)
-        p = win_prob(h, a, g.neutral)
-        spread = (h - a + (0 if g.neutral else HOME_ADV)) / ELO_PER_POINT
+        p = calibrate(win_prob(h, a, g.neutral), cal)
         return {
             "home_elo": round(h, 1),
             "away_elo": round(a, 1),
             "home_win_prob": round(p, 4),
             "away_win_prob": round(1 - p, 4),
-            "home_spread": round(-spread, 1),  # negative = home favored
+            "home_spread": round(spread_for(p), 1),  # negative = home favored
         }
 
     def update(self, g: Game) -> float:
@@ -87,26 +131,45 @@ class EloModel:
         return p
 
 
+def replay(games: list[Game]) -> list[tuple[Game, float]]:
+    """Every finished game in order, with the raw home win prob from the ratings before it."""
+    model, out = EloModel(), []
+    for g in sorted(games, key=lambda x: (x.date, x.game_id)):
+        if g.is_final:
+            out.append((g, model.update(g)))
+    return out
+
+
+def calibration_for(rows: list[tuple[Game, float]], season: str) -> Calibration:
+    """Fitted on complete seasons before `season`. The first season is left out:
+    everyone starts at 1500, so its predictions say little."""
+    first = rows[0][0].season if rows else None
+    return fit_calibration([(p, int(g.home_pts > g.away_pts)) for g, p in rows
+                            if first < g.season < season])
+
+
+def walk_forward(rows: list[tuple[Game, float]]) -> list[float]:
+    """Calibrated home win prob for each row, each season using only earlier seasons."""
+    cals = {s: calibration_for(rows, s) for s in {g.season for g, _ in rows}}
+    return [calibrate(p, cals[g.season]) for g, p in rows]
+
+
 def past_picks(games: list[Game], seasons: set[str]) -> list[dict]:
     """The model's pick for every finished game in `seasons`, made from the ratings it had
-    going into that game (only earlier results), with how it turned out."""
-    model = EloModel()
+    going into that game (only earlier results) and the calibration of earlier seasons,
+    with how it turned out."""
+    rows = replay(games)
     out = []
-    for g in sorted(games, key=lambda x: (x.date, x.game_id)):
-        if not g.is_final:
-            continue
-        model._new_season(g.season)
-        pre = model.predict(g)
-        model.update(g)
+    for (g, _), p in zip(rows, walk_forward(rows)):
         if g.season not in seasons:
             continue
-        home_pick = pre["home_win_prob"] >= 0.5
+        home_pick = p >= 0.5
         winner = g.home if g.home_pts > g.away_pts else g.away
         out.append({
             "game_id": g.game_id, "date": g.date, "season": g.season, "home": g.home, "away": g.away,
-            "home_pts": g.home_pts, "away_pts": g.away_pts, "home_spread": pre["home_spread"],
+            "home_pts": g.home_pts, "away_pts": g.away_pts, "home_spread": round(spread_for(p), 1),
             "pick": g.home if home_pick else g.away,
-            "p": round(pre["home_win_prob"] if home_pick else pre["away_win_prob"], 4),
+            "p": round(p if home_pick else 1 - p, 4),
             "winner": winner, "correct": (g.home if home_pick else g.away) == winner,
         })
     return out
@@ -126,32 +189,29 @@ def pick_record(picks: list[dict]) -> dict:
 
 
 def backtest(games: list[Game], skip_first_season: bool = True) -> dict:
-    """Replay games in order, scoring each pre-game prediction.
+    """Score every pre-game prediction, calibrated walk-forward (each season's
+    calibration from earlier seasons only), plus the raw Elo numbers.
 
     The first season is skipped by default because everyone starts at 1500,
     so early predictions are meaningless.
     """
-    model = EloModel()
-    first = games[0].season if games else None
-    n = correct = 0
-    brier = logloss = 0.0
-    for g in sorted(games, key=lambda x: (x.date, x.game_id)):
-        if not g.is_final:
-            continue
-        p = model.update(g)
-        if skip_first_season and g.season == first:
-            continue
-        won = g.home_pts > g.away_pts
-        n += 1
-        correct += (p >= 0.5) == won
-        brier += (p - won) ** 2
-        q = min(max(p if won else 1 - p, 1e-9), 1.0)
-        logloss -= math.log(q)
-    if n == 0:
+    rows = replay(games)
+    if not rows:
         return {"games": 0}
-    return {
-        "games": n,
-        "accuracy": round(correct / n, 4),
-        "brier": round(brier / n, 4),
-        "log_loss": round(logloss / n, 4),
-    }
+    first = rows[0][0].season
+    keep = [(g, raw, p) for (g, raw), p in zip(rows, walk_forward(rows))
+            if not (skip_first_season and g.season == first)]
+    if not keep:
+        return {"games": 0}
+
+    def score(probs):
+        n = len(keep)
+        won = [g.home_pts > g.away_pts for g, _, _ in keep]
+        return {
+            "accuracy": round(sum((p >= 0.5) == w for p, w in zip(probs, won)) / n, 4),
+            "brier": round(sum((p - w) ** 2 for p, w in zip(probs, won)) / n, 4),
+            "log_loss": round(-sum(math.log(min(max(p if w else 1 - p, 1e-9), 1.0))
+                                   for p, w in zip(probs, won)) / n, 4),
+        }
+    cal, raw = score([p for _, _, p in keep]), score([r for _, r, _ in keep])
+    return {"games": len(keep), **cal, **{f"raw_{k}": v for k, v in raw.items()}}

@@ -142,7 +142,7 @@ def main() -> None:
         for t in ("pts", "pra"):
             print(f"{t}: {bt[t]}")
 
-    proj, disp, past, past_mu = props.train_and_project(df)
+    proj, disp, cal, past, past_mu = props.train_and_project(df)
     fut = df[df["future"]]
     players = []
     for i, row in fut.iterrows():
@@ -173,6 +173,7 @@ def main() -> None:
     tips = {g["gameId"]: g.get("gameDateTimeUTC") for d in raw["leagueSchedule"]["gameDates"] for g in d["games"]}
     write_json(args.out / "props.json", {
         "built_at": now_iso(), "season": season, "labels": props.LABELS, "targets": props.TARGETS,
+        "cal": cal,  # per-stat [a, b]: logit P'(stat > x) = a * logit P(stat > x) + b
         "games": [{"game_id": gid, "date": d, "home": by_id[gid].home, "away": by_id[gid].away,
                    "home_spread": spreads.get(gid), "tip": tips.get(gid)} for d, gid in games],
         "players": players,
@@ -182,7 +183,7 @@ def main() -> None:
     # The model's picks: grade earlier ones, lock in today's, and simulate last season.
     made = model_picks.load(PICKS)
     model_picks.grade(made, logs)
-    new = model_picks.make_picks(players, made, now_iso())
+    new = model_picks.make_picks(players, made, now_iso(), cal)
     made += new
     model_picks.save(PICKS, made)
     write_json(args.out / "picks.json", {
@@ -191,7 +192,7 @@ def main() -> None:
                   "min_minutes": model_picks.MIN_MINUTES, "odds": model_picks.ODDS},
         "live": {**model_picks.summarize(made),
                  "picks": sorted(made, key=lambda x: (x["date"], x["p"]), reverse=True)},  # newest first
-        "sim": model_picks.simulate(past, past_mu, disp),
+        "sim": model_picks.simulate(past, past_mu, disp, cal),
     })
     print(f"picks: {len(new)} new, {len(made)} total")
     print(f"wrote {len(players)} projections across {len(games)} games")

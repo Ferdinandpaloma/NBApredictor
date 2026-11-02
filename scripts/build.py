@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from nbaelo.data import fetch_schedule, load_history, merge, now_iso, parse_schedule  # noqa: E402
-from nbaelo.elo import EloModel, backtest, past_picks, pick_record  # noqa: E402
+from nbaelo.elo import EloModel, backtest, calibration_for, past_picks, pick_record, replay  # noqa: E402
 
 HISTORY = ROOT / "data" / "history.csv"
 SITE = ROOT / "site"
@@ -51,11 +51,13 @@ def main() -> None:
     # Carry ratings into the new season even before its first game.
     season = raw["leagueSchedule"]["seasonYear"]
     model._new_season(season)
+    # Raw Elo is overconfident; published probabilities use a correction fitted on past seasons.
+    cal = calibration_for(replay(games), season)
 
     # Predict the next week of games (dates are sorted, so take the window).
     dates = sorted({g.date for g in upcoming})[:DAYS_AHEAD]
     preds = [
-        {"game_id": g.game_id, "date": g.date, "home": g.home, "away": g.away, **model.predict(g)}
+        {"game_id": g.game_id, "date": g.date, "home": g.home, "away": g.away, **model.predict(g, cal)}
         for g in upcoming
         if g.date in dates
     ]
@@ -64,7 +66,8 @@ def main() -> None:
         ({"team": t, "elo": round(r, 1)} for t, r in model.ratings.items()),
         key=lambda x: -x["elo"],
     )
-    meta = {"built_at": now_iso(), "season": season, "backtest": backtest(games)}
+    meta = {"built_at": now_iso(), "season": season, "backtest": backtest(games),
+            "calibration": {"a": cal[0], "b": cal[1]}}
 
     write_json(args.out / "predictions.json", preds)
     write_json(args.out / "ratings.json", ratings)

@@ -55,8 +55,10 @@ def form_line(stat: str, l10, param):
     return best if best.size > 1 else best[0]
 
 
-def best_market(player: dict) -> dict | None:
-    """The player's strongest over/under among MARKETS, or None if none qualifies."""
+def best_market(player: dict, cal: dict | None = None) -> dict | None:
+    """The player's strongest over/under among MARKETS, or None if none qualifies.
+    `cal` is the per-stat calibration applied to the model's probability (not to
+    recent form's, which only sets the line)."""
     if player.get("likely_out") or (player["proj"]["min"][0] or 0) < MIN_MINUTES:
         return None
     best = None
@@ -69,7 +71,7 @@ def best_market(player: dict) -> dict | None:
         pf = float(p_over(t, l10, param, line))  # what recent form alone says
         if not FORM_BAND[0] <= pf <= FORM_BAND[1]:
             continue
-        po = float(p_over(t, mu, param, line))  # half-point line: no push, under = 1 - over
+        po = float(p_over(t, mu, param, line, (cal or {}).get(t)))  # half-point line: under = 1 - over
         side, p = ("over", po) if po >= 0.5 else ("under", 1 - po)
         if p >= MIN_P and (best is None or p > best["p"]):
             best = {"stat": t, "line": line, "side": side, "p": round(p, 4),
@@ -77,7 +79,7 @@ def best_market(player: dict) -> dict | None:
     return best
 
 
-def make_picks(players: list[dict], existing: list[dict], made_at: str) -> list[dict]:
+def make_picks(players: list[dict], existing: list[dict], made_at: str, cal: dict | None = None) -> list[dict]:
     """New picks for the earliest upcoming date. Games that already have picks are locked."""
     if not players:
         return []
@@ -88,7 +90,7 @@ def make_picks(players: list[dict], existing: list[dict], made_at: str) -> list[
     for pl in players:
         if pl["date"] != day or pl["game_id"] in locked:
             continue
-        m = best_market(pl)
+        m = best_market(pl, cal)
         if m:
             cands.append({"made_at": made_at, "date": day, "game_id": pl["game_id"],
                           "player_id": pl["id"], "player": pl["name"], "team": pl["team"],
@@ -159,7 +161,7 @@ def summarize(picks: list[dict]) -> dict:
     }
 
 
-def simulate(hold, mu, disp: dict) -> dict:
+def simulate(hold, mu, disp: dict, cal: dict | None = None) -> dict:
     """Apply the same rules to out-of-sample predictions for past games.
 
     `hold` is the feature frame for games the model wasn't trained on and `mu`
@@ -178,7 +180,7 @@ def simulate(hold, mu, disp: dict) -> dict:
         line = form_line(t, safe, dist_param(disp[t], safe))
         pf = p_over(t, safe, dist_param(disp[t], safe), line)
         valid &= (pf >= FORM_BAND[0]) & (pf <= FORM_BAND[1])
-        po = np.where(valid, p_over(t, m, dist_param(disp[t], m), np.nan_to_num(line)), 0.5)
+        po = np.where(valid, p_over(t, m, dist_param(disp[t], m), np.nan_to_num(line), (cal or {}).get(t)), 0.5)
         p = np.maximum(po, 1 - po)
         actual = hold[t].to_numpy(float)
         for i in np.nonzero(valid & (p >= MIN_P) & (p > best_p))[0]:

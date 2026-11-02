@@ -121,6 +121,42 @@ class ScheduleTests(unittest.TestCase):
             self.assertEqual(meta["season"], "2026-27")
 
 
+class CalibrationTests(unittest.TestCase):
+    def test_fit_recovers_overconfidence(self):
+        import math
+        import random
+        from nbaelo.elo import IDENTITY, calibrate, fit_calibration, spread_for
+        rng = random.Random(1)
+        pairs = []
+        for _ in range(20000):  # truth: real chances are a 0.8x-shrunk, home-0.2 version of p
+            p = rng.uniform(0.1, 0.9)
+            true = calibrate(p, (0.8, -0.2))
+            pairs.append((p, int(rng.random() < true)))
+        a, b = fit_calibration(pairs)
+        self.assertAlmostEqual(a, 0.8, delta=0.05)
+        self.assertAlmostEqual(b, -0.2, delta=0.05)
+        self.assertEqual(fit_calibration(pairs[:50]), IDENTITY)  # too little data: leave it alone
+        self.assertAlmostEqual(calibrate(0.7, IDENTITY), 0.7)
+        # Spread matches the raw Elo formula when uncalibrated: 100 Elo of home court ~ -3.6.
+        self.assertAlmostEqual(spread_for(1 / (1 + 10 ** (-100 / 400))), -100 / 28, places=6)
+        self.assertLess(calibrate(0.8, (0.86, -0.27)), 0.8)
+        self.assertTrue(math.isfinite(calibrate(1.0, (0.9, 0.0))))
+
+    def test_past_picks_use_only_earlier_seasons(self):
+        from nbaelo.elo import past_picks
+        gs = []
+        for si, season in enumerate(("2023-24", "2024-25", "2025-26")):
+            for k in range(200):
+                home, away = ("AAA", "BBB") if k % 2 else ("BBB", "AAA")
+                gs.append(Game(f"{si}{k:04d}", f"{2023 + si}-11-{k % 28 + 1:02d}", season, home, away,
+                               110 + (k % 7), 105 + (k % 11)))
+        before = past_picks(gs, {"2024-25"})
+        # Changing a later season's results can't change earlier seasons' picks.
+        later = [g if g.season != "2025-26" else Game(g.game_id, g.date, g.season, g.home, g.away, 90, 130)
+                 for g in gs]
+        self.assertEqual(before, past_picks(later, {"2024-25"}))
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -81,23 +81,30 @@ function erf(x) {  // Abramowitz-Stegun 7.1.26
   const t = 1 / (1 + 0.3275911 * x);
   return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x));
 }
-function dist(stat, mu, param) {
+// `cal` [a, b] is the build's per-stat calibration: P'(stat > x) = logistic(a * logit P(stat > x) + b),
+// applied at every point so over, under, push and the chart stay consistent.
+function dist(stat, mu, param, cal) {
+  const fix = !cal ? (c => c) : c => {  // calibrate a CDF value through its survival 1 - c
+    const sv = Math.min(Math.max(1 - c, 1e-12), 1 - 1e-12);
+    return 1 - 1 / (1 + Math.exp(-(cal[0] * Math.log(sv / (1 - sv)) + cal[1])));
+  };
   if (stat === "min") {
-    const cdf = x => 0.5 * (1 + erf((x - mu) / (param * Math.SQRT2)));
+    const cdf = x => fix(0.5 * (1 + erf((x - mu) / (param * Math.SQRT2))));
     const q = p => { let lo = 0, hi = 60; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; cdf(m) < p ? lo = m : hi = m; } return lo; };
     return { over:L => 1 - cdf(L), under:L => cdf(L), push:() => 0, q,
              bins() { const out = []; for (let k = Math.max(0, Math.floor(q(.005))); k <= Math.ceil(q(.995)); k++) out.push({ k, p:cdf(k + .5) - cdf(k - .5) }); return out; } };
   }
   const n = 1 / param, pr = n / (n + Math.max(mu, 1e-6));
-  const pmf = [Math.exp(n * Math.log(pr))], kmax = Math.ceil(mu * 4 + 40);
-  for (let k = 0; k < kmax; k++) pmf.push(pmf[k] * (k + n) / (k + 1) * (1 - pr));
-  const cdf = []; pmf.reduce((a, v, i) => (cdf[i] = a + v), 0);
+  const raw = [Math.exp(n * Math.log(pr))], kmax = Math.ceil(mu * 4 + 40);
+  for (let k = 0; k < kmax; k++) raw.push(raw[k] * (k + n) / (k + 1) * (1 - pr));
+  const cdf = []; raw.reduce((a, v, i) => (cdf[i] = fix(a + v), a + v), 0);
+  const pmf = cdf.map((c, i) => c - (i ? cdf[i - 1] : 0));
   const C = k => k < 0 ? 0 : k >= cdf.length ? 1 : cdf[k];
   const q = p => { const i = cdf.findIndex(c => c >= p); return i < 0 ? kmax : i; };
   return { over:L => 1 - C(Math.floor(L)), under:L => C(Math.ceil(L) - 1), push:L => Number.isInteger(L) ? (pmf[L] || 0) : 0, q,
            bins() { const out = []; for (let k = q(.005); k <= q(.995); k++) out.push({ k, p:pmf[k] }); return out; } };
 }
-const distOf = (p, s) => dist(s, p.proj[s][0], p.proj[s][1]);
+const distOf = (p, s) => dist(s, p.proj[s][0], p.proj[s][1], P.cal?.[s]);
 const american = p => p <= 0 || p >= 1 ? "–" : p >= .5 ? "−" + Math.round(100 * p / (1 - p)) : "+" + Math.round(100 * (1 - p) / p);
 const implied = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
 const payout = o => o > 0 ? o : 10000 / -o;  // profit on a $100 stake
@@ -628,7 +635,7 @@ function renderTeams() {
   const top = TEAMS.ratings[0]?.elo, low = TEAMS.ratings.at(-1)?.elo;
   el.innerHTML = `<div class="reveal">
     <div><p class="kicker">Team picks</p><h2 class="head">Who wins each game</h2>
-      <p class="deck">Every game this week from the team Elo model: each team's rating moves after every result, adjusted for margin and home court.${bt.accuracy ? ` Tested on ${bt.games.toLocaleString()} past games, it picked the winner ${pct(bt.accuracy)} of the time.` : ""}</p></div>
+      <p class="deck">Every game this week from the team Elo model: each team's rating moves after every result, adjusted for margin and home court. Win chances are corrected using how its past picks actually did, so a 70% pick should win about 70% of the time.${bt.accuracy ? ` Tested on ${bt.games.toLocaleString()} past games, it picked the winner ${pct(bt.accuracy)} of the time.` : ""}</p></div>
     <div class="controls"><div class="seg" id="tview">
       <button type="button" data-v="upcoming" class="${TEAMS.view === "upcoming" ? "on" : ""}">Upcoming games</button><button type="button" data-v="results" class="${TEAMS.view === "results" ? "on" : ""}">Results${TEAMS.results?.record.n ? ` · ${TEAMS.results.record.correct}–${TEAMS.results.record.n - TEAMS.results.record.correct}` : ""}</button></div></div>
     ${TEAMS.view === "results" ? pastPicks() : `<div class="teamcols">
