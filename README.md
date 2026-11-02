@@ -83,6 +83,12 @@ The **News** tab shows ESPN's NBA headlines, injury report and transactions, rea
 
 The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Regulars ruled Out also feed the projections: teammates' minutes and stats go up, and opponents get the matchup against a weakened lineup. In the backtest (2023-24 to 2025-26) this cut points error from 4.55 to 4.48, PRA from 5.98 to 5.84 and minutes from 4.86 to 4.64.
 
+## Tried and dropped: who guards whom
+
+`scripts/backfill_matchups.py` downloads the NBA's per-game matchup tracking (which defender guarded which player, for how long, and what he did) into `data/matchups.csv` (local only, gitignored; ~10,300 games from 2018-19, about 4 hours at one request a second). `nbaelo/matchups.py` turns it into leak-free features: a shrunk, time-faded rating for each defender, the possession-weighted rating of the opponent's defenders a player has historically drawn (only those playing that night), and his head-to-head record against them.
+
+Walk-forward backtest, 2023-24 to 2025-26, 83k player-games (87% with matchup history), on top of the injury-aware model: points error 4.4768 -> 4.4758, PRA 5.8459 -> 5.8443; for 20+ ppg scorers PTS 6.346 -> 6.342, PRA 7.541 -> 7.537; threes and pts+ast slightly worse. Every change is under 0.1%, inside the noise (the injury features cut PRA error by 2.3%). The defender rating's correlation with a player's scoring vs his norm is 0.025. Defenders switch too often and assignments shift too much game to game for this to beat team-level defense, so it isn't part of the daily build.
+
 ## Team picks record
 
 The **Team Picks** tab also shows how the Elo picks did: every finished game this season with the model's pick, its confidence and whether it was right, plus hit rate by confidence and last season's record. `scripts/build.py` writes these to `site/team_results.json` by replaying the season (`past_picks` in `nbaelo/elo.py`), so each pick uses only the ratings the model had before that game.
