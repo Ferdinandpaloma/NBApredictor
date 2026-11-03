@@ -44,6 +44,8 @@ OUT_GAP = 3           # missed the team's last N games -> flagged "likely out"
 GENERIC = ["min_e5", "min_e20", "min_l3", "min_sea", "gp", "gp_sea", "rest", "b2b", "home",
            "gap", "miss_pts", "miss_n", "spread", "pace", "opp_pace",
            "out_pts", "out_min", "out_n", "opp_out_pts", "opp_out_min", "opp_out_n",
+           "out_reb", "out_ast", "out_fg3m", "opp_out_reb", "opp_out_ast", "opp_out_fg3m",
+           "opp_rest", "opp_b2b", "team_gp", "ts_e5", "ts_e20", "ts_e80",
            "pts_e20", "reb_e20", "ast_e20", "fga_e20"]
 
 
@@ -93,15 +95,23 @@ def _shifted(g, col: str, fn) -> pd.Series:
     return g[col].transform(lambda x: fn(x).shift())
 
 
-def _context(df: pd.DataFrame, pts_post: np.ndarray, min_post: np.ndarray) -> dict:
+OUT_STATS = ["pts", "min", "reb", "ast", "fg3m"]  # what's missing, summed over absent regulars
+
+
+def _context(df: pd.DataFrame, post: dict[str, np.ndarray]) -> dict:
     """Sequential pass over team-games: how long each player has been out, how
     much scoring the team was missing in its previous game, and who it is
     missing in this one.
 
     "Missing in this one" means regulars (20+ minutes a game lately, still on
     the team, played in its last 10 games) who aren't playing: absent from the
-    box score for past games, flagged `out` for upcoming ones. The `out_*`
-    values are per team-game, so the opponent's can be looked up too."""
+    box score for past games, flagged `out` for upcoming ones. `out_<stat>` is
+    the sum of their recent averages (so a missing center shows up as missing
+    rebounds, a missing point guard as missing assists). The values are per
+    team-game, so the opponent's can be looked up too.
+
+    `post` holds each OUT_STATS stat's average *including* each row's game,
+    used only once that game is in the past."""
     pid = df["player_id"].to_numpy()
     fut = df["future"].to_numpy()
     out_flag = df["out"].to_numpy()
@@ -109,12 +119,14 @@ def _context(df: pd.DataFrame, pts_post: np.ndarray, min_post: np.ndarray) -> di
     gap = np.full(n, np.nan)
     miss_pts = np.zeros(n)
     miss_n = np.zeros(n)
-    now = {k: np.zeros(n) for k in ("out_pts", "out_min", "out_n")}
+    now = {k: np.zeros(n) for k in [f"out_{c}" for c in OUT_STATS] + ["out_n"]}
     team_rows = []
 
     count = defaultdict(int)
     hist: dict[str, list[set]] = defaultdict(list)
-    last_team, last_idx, last_pts, last_min = {}, {}, {}, {}
+    last_team, last_idx = {}, {}
+    last = {c: {} for c in OUT_STATS}
+    last_pts, last_min = last["pts"], last["min"]
     order = df.groupby(["game_id", "team"], sort=False).indices
     keys = sorted(order, key=lambda k: (order[k].min(), k))  # frame is date-sorted
     for gid, team in keys:
@@ -129,7 +141,7 @@ def _context(df: pd.DataFrame, pts_post: np.ndarray, min_post: np.ndarray) -> di
             playing = {pid[i] for i in idx if not (fut[i] and out_flag[i])}
             gone = [p for p in set().union(*h[-10:]) - playing
                     if last_team.get(p) == team and last_min.get(p, 0) >= 20]
-            vals = (sum(last_pts[p] for p in gone), sum(last_min[p] for p in gone), len(gone))
+            vals = (*(sum(last[c][p] for p in gone) for c in OUT_STATS), len(gone))
             for key, v in zip(now, vals):
                 now[key][idx] = v
             team_rows.append((gid, team, *vals))
@@ -142,10 +154,11 @@ def _context(df: pd.DataFrame, pts_post: np.ndarray, min_post: np.ndarray) -> di
             for i in real:
                 p = pid[i]
                 last_team[p], last_idx[p] = team, k
-                last_pts[p], last_min[p] = pts_post[i], min_post[i]
+                for c in OUT_STATS:
+                    last[c][p] = post[c][i]
             h.append({pid[i] for i in real})
             count[team] += 1
-    teams = pd.DataFrame(team_rows, columns=["game_id", "opp", "opp_out_pts", "opp_out_min", "opp_out_n"])
+    teams = pd.DataFrame(team_rows, columns=["game_id", "opp"] + [f"opp_{k}" for k in now])
     return {"gap": gap, "miss_pts": miss_pts, "miss_n": miss_n, **now}, teams
 
 
@@ -191,8 +204,16 @@ def build_features(df: pd.DataFrame, spreads: dict[str, float]) -> pd.DataFrame:
     f["rest"] = g["date"].diff().dt.days.clip(upper=10).fillna(10)
     f["b2b"] = (f["rest"] == 1).astype(int)
     post = {c: g[c].transform(lambda x: x.ewm(halflife=20, ignore_na=True).mean()).to_numpy()
-            for c in ("pts", "min")}
-    ctx, out_by_team = _context(df, post["pts"], post["min"])
+            for c in OUT_STATS}
+    ctx, out_by_team = _context(df, post)
+    # A player who just changed teams: his averages come from a different role.
+    f["team_gp"] = df.groupby(["player_id", "team"], sort=False).cumcount()
+    # Shooting luck: recent true shooting vs his long-run level (hot streaks fade).
+    long = {c: _shifted(g, c, lambda x: x.ewm(halflife=80, ignore_na=True).mean()) for c in ("pts", "fga", "fta")}
+    ts = lambda p, a, t: p / (2 * (a + 0.44 * t)).clip(lower=1)  # noqa: E731
+    f["ts_e5"] = ts(f["pts_e5"], f["fga_e5"], f["fta_e5"])
+    f["ts_e20"] = ts(f["pts_e20"], f["fga_e20"], f["fta_e20"])
+    f["ts_e80"] = ts(long["pts"], long["fga"], long["fta"])
     f.update(ctx)
     home_spread = df["game_id"].map(spreads)
     f["spread"] = np.where(df["home"] == 1, home_spread, -home_spread)
@@ -203,6 +224,12 @@ def build_features(df: pd.DataFrame, spreads: dict[str, float]) -> pd.DataFrame:
     opp = tf.rename(columns={"team": "opp", "pace": "opp_pace",
                              **{f"def_{t}": f"opp_{t}" for t in COUNTS}})
     df = df.merge(opp, on=["game_id", "opp"], how="left")
+    # Opponent's rest: days since its previous game (back-to-backs tire defenses too).
+    tg = df.groupby(["game_id", "team"], sort=False)["date"].first().reset_index().sort_values(["date", "game_id"])
+    tg["opp_rest"] = tg.groupby("team")["date"].diff().dt.days.clip(upper=10).fillna(10)
+    tg["opp_b2b"] = (tg["opp_rest"] == 1).astype(int)
+    df = df.merge(tg.rename(columns={"team": "opp"})[["game_id", "opp", "opp_rest", "opp_b2b"]],
+                  on=["game_id", "opp"], how="left")
     return df.merge(out_by_team, on=["game_id", "opp"], how="left")
 
 
