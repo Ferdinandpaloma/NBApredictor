@@ -37,9 +37,10 @@ else
 fi
 
 $PY -m scripts.build
-$PY -m scripts.build_props --no-fetch
+$PY -m scripts.build_props --no-fetch $([ "$MODE" = pregame ] && echo --odds)
 
 git add site/*.json site/players data/player_logs.csv data/picks.csv
+if [ -f data/book_lines.csv ]; then git add data/book_lines.csv; fi
 if git diff --cached --quiet; then
   echo "no changes"
   exit 0

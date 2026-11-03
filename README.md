@@ -84,6 +84,12 @@ The **News** tab shows ESPN's NBA headlines, injury report and transactions, rea
 
 The injury report feeds the rest of the site: players are matched by name, Out / DTD tags show on the Slate, Board, Line Desk, parlay slip and Model Picks, and players ruled **Out** are marked likely out in the build, so Model Picks skips them. Regulars ruled Out also feed the projections: teammates' minutes and stats go up, and opponents get the matchup against a weakened lineup. In the backtest (2023-24 to 2025-26) this cut points error from 4.55 to 4.48, PRA from 5.98 to 5.84 and minutes from 4.86 to 4.64.
 
+## Sportsbook lines
+
+Optional, with a free [The Odds API](https://the-odds-api.com) key (500 credits a month; each game costs one credit per market). Put the key in `~/.config/nba-predictor/odds_api_key` (outside the repo) or set `ODDS_API_KEY`. The pre-game run then fetches every game on the slate (`build_props --odds`, `nbaelo/odds.py`): by default points and PRA, which fits the free plan once a day; `ODDS_MARKETS=player_points,player_rebounds,...` takes more on a paid plan. It holds back credits for the rest of the month and never fetches past that.
+
+For each player and market it keeps the line most books post, the median prices there, and the best price on each side (and which book has it). Lines go on the projections (`p.book` in `props.json`): the Line Desk and Board start from the book's line instead of the recent-form stand-in. Every line is saved to `data/book_lines.csv` with the model's chances at that moment, then graded from the box scores (`nbaelo/booklines.py`). The record (`books` in `picks.json`) bets the model's side only when its chance beats the book's no-vig chance by 3, 6 or 10 points, at the book's real median price, so its units are a true test against real lines. Historical props are paid-only on The Odds API, so this record starts from the first fetch.
+
 ## Tried and dropped: who guards whom
 
 `scripts/backfill_matchups.py` downloads the NBA's per-game matchup tracking (which defender guarded which player, for how long, and what he did) into `data/matchups.csv` (local only, gitignored; ~10,300 games from 2018-19, about 4 hours at one request a second). `nbaelo/matchups.py` turns it into leak-free features: a shrunk, time-faded rating for each defender, the possession-weighted rating of the opponent's defenders a player has historically drawn (only those playing that night), and his head-to-head record against them.
