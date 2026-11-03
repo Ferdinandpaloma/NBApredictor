@@ -55,14 +55,15 @@ The backtest walks forward (train on earlier seasons, predict the next) and comp
 
 ## Daily updates
 
-cdn.nba.com blocks GitHub's runners (403), and stats.nba.com blocks cloud IPs, so the data is refreshed from a Mac instead. `scripts/daily.sh` pulls the current season from stats.nba.com, runs both builds, commits and pushes; Vercel redeploys on the push. A launchd job runs it at 9:00 every morning (or on wake if the Mac was asleep). macOS won't let background jobs read ~/Documents, so the job runs from its own clone in `~/Library/Application Support/nba-predictor` (with its own `.venv`); `git pull` your working copy to see the updates:
+cdn.nba.com blocks GitHub's runners (403), and stats.nba.com blocks cloud IPs, so the data is refreshed from a Mac instead. `scripts/daily.sh` pulls the current season from stats.nba.com, runs both builds, commits and pushes; Vercel redeploys on the push. A launchd job runs it at 9:00 every morning (or on wake if the Mac was asleep), and a second one runs `daily.sh pregame` at 15:00 Pacific: no new box scores, just the projections again with the afternoon injury report, an hour before the usual first tips (picks already made stay locked). Pulls and pushes retry on network errors; if someone pushed meanwhile, the job rebases onto it, keeping the already-published version of any data file that conflicts. macOS won't let background jobs read ~/Documents, so the job runs from its own clone in `~/Library/Application Support/nba-predictor` (with its own `.venv`); `git pull` your working copy to see the updates:
 
 ```bash
 # install (already done on the main machine)
 git clone https://github.com/Ferdinandpaloma/NBApredictor.git ~/Library/Application\ Support/nba-predictor
 cd ~/Library/Application\ Support/nba-predictor && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cp scripts/com.nbapredictor.daily.plist ~/Library/LaunchAgents/
+cp scripts/com.nbapredictor.daily.plist scripts/com.nbapredictor.pregame.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nbapredictor.daily.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nbapredictor.pregame.plist
 
 launchctl kickstart gui/$(id -u)/com.nbapredictor.daily   # run it now
 tail -f ~/Library/Logs/nba-predictor.log                   # watch it
