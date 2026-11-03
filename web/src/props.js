@@ -118,6 +118,7 @@ const multText = o => String(+toDecimal(o).toFixed(2));
 // Stand-in line: the half point where the player's recent form alone is closest to
 // 50/50, like a book anchored on form would post (same rule as the model's picks).
 function defaultLine(p, s) {
+  if (p.book?.[s]) return p.book[s].line;  // a real sportsbook line, when the build fetched one
   const form = p.e5?.[s] ?? p.l10[s] ?? p.proj[s][0], D = dist(s, form, p.proj[s][1]);
   const base = Math.floor(form) + 0.5;
   return [base - 1, base, base + 1].filter(c => c > 0)
@@ -298,7 +299,7 @@ function renderBoard() {
   rows.sort((a, c) => key(a) - key(c));
   el.innerHTML = `<div class="reveal">
     <div><p class="kicker">The board</p><h2 class="head">Where the model disagrees with recent form</h2>
-      <p class="deck">Every projected player in one market. The line shown is a stand-in: the player's last-10 average rounded to the half point. Open a row in the Line Desk and type your book's line for the real price.</p></div>
+      <p class="deck">Every projected player in one market. Lines marked <span class="tag book">Book</span> are the line most sportsbooks posted; the others are a stand-in set from recent form. Open a row in the Line Desk for the full price.</p></div>
     <div class="controls">
       <div class="field" style="min-width:200px"><label>Market</label><select id="bstat">${P.targets.map(t => `<option value="${t}" ${t === b.stat ? "selected" : ""}>${P.labels[t]}</option>`).join("")}</select></div>
       <div class="field"><label>Sort by</label><div class="seg" id="bsort">${[["gap", "Biggest gap"], ["over", "Over"], ["under", "Under"], ["proj", "Projection"]].map(([k, l]) => `<button data-k="${k}" class="${k === b.sort ? "on" : ""}">${l}</button>`).join("")}</div></div>
@@ -311,7 +312,7 @@ function renderBoard() {
         <td>${face(r.p.id, r.p.name)}<span class="pname">${esc(r.p.name)}</span> <span class="muted">${logo(r.p.team)}${r.p.team}</span>${statusTag(r.p, "Out?")}</td>
         <td class="muted">${r.p.home ? "vs" : "@"} ${logo(r.p.opp)}${r.p.opp} · ${dayLabel(r.p.date)}</td>
         <td class="proj">${fmt(r.mu)}</td><td>${fmt(r.p.l10[b.stat])}</td><td>${fmt(r.p.sea[b.stat])}</td>
-        <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}</td>
+        <td>${r.gap > 0 ? "+" : ""}${fmt(r.gap)}</td><td>${r.line}${r.p.book?.[b.stat] ? ` <span class="tag book" data-tip="${bookTip(r.p.book[b.stat])}">Book</span>` : ""}</td>
         <td style="text-align:left"><span class="pbar" data-tip="Over ${pct(r.over, 1)} · Under ${pct(r.under, 1)}"><i style="width:${r.over * 100}%"></i></span><span class="lean ${lean[0]}">${lean[1]} ${pct(lean[2])}</span></td>
         <td>${addBtn(r.p, b.stat, r.line, lean[1].toLowerCase(), lean[2])}</td></tr>`; }).join("")}
     </table></div>
@@ -322,6 +323,26 @@ function renderBoard() {
   $("bout").onchange = e => { b.hideOut = e.target.checked; renderBoard(); };
   el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => openDesk(tr.dataset.pid, b.stat, +tr.dataset.line));
   wireAddBtns(el);
+}
+
+// ---------- sportsbook lines (fetched by the pre-game build when an Odds API key is set) ----------
+const bookTip = k => esc(`${k.books} book${k.books === 1 ? "" : "s"} · Over ${showOdds(k.over)} · Under ${showOdds(k.under)}`);
+function bookNote(p, s, L) {
+  const k = p.book?.[s];
+  if (!k) return "";
+  const at = new Date(k.at).toLocaleString(undefined, { weekday:"short", hour:"numeric", minute:"2-digit" });
+  return `<div class="booknote"><div><b>Sportsbooks: ${k.line}</b> · Over ${showOdds(k.over)} · Under ${showOdds(k.under)}
+      <span class="muted">· median of ${k.books} book${k.books === 1 ? "" : "s"}, ${esc(at)}</span><br>
+      <span class="muted">Best over ${showOdds(k.best_over[0])} at ${esc(k.best_over[1])} · best under ${showOdds(k.best_under[0])} at ${esc(k.best_under[1])}</span></div>
+    ${L === k.line ? `<button type="button" class="btn line" id="usebook">Use these odds</button>`
+      : `<button type="button" class="btn line" id="usebook">Go to ${k.line}</button>`}</div>`;
+}
+function useBook() {
+  const d = S.desk, k = P.players.find(x => x.id === d.pid)?.book?.[d.stat];
+  if (!k) return;
+  d.line = k.line;
+  for (const [side, o] of [["o", k.over], ["u", k.under]]) d[side] = { sign:Math.sign(o), abs:String(Math.abs(o)), x:multText(o) };
+  renderDesk();
 }
 
 // ==================== LINE DESK ====================
@@ -388,6 +409,7 @@ function renderDesk() {
     if (inp.value !== o.abs) inp.value = o.abs;
     inp.previousElementSibling.textContent = o.sign < 0 ? "−" : "+";
     renderSlip(); });
+  $("slip").onclick = e => { if (e.target.closest("#usebook")) useBook(); };
   renderSlip();
   renderParlay();
 }
@@ -437,6 +459,7 @@ function renderSlip() {
       ${(i => i ? `<div class="warn"><b>${esc(i.status)}${i.injury ? ` (${esc(i.injury)})` : ""}.</b> ${esc(i.note)}${i.return ? ` Expected back around ${backBy(i.return)}.` : ""}</div>`
         : p.likely_out ? `<div class="warn"><b>Likely out.</b> ${esc(p.name)} has missed their team's last 3+ games. Check the injury report before betting.</div>` : "")(injOf(p.name, p.injury))}
       ${missingNote(p)}
+      ${bookNote(p, s, L)}
       ${ev}
       ${betbox}
       <div class="facts">
@@ -1146,6 +1169,22 @@ function accuracyTables(s) {
 
 const pickText = x => `${x.side === "over" ? "Over" : "Under"} ${x.line} ${SHORT[x.stat] || x.stat}`;
 
+// The honest test: real sportsbook lines and prices, betting only where the model disagrees.
+function booksRecord(B) {
+  if (!B?.lines) return "";
+  const head = `<h3 class="sub">Against real sportsbook lines<small>since ${esc(B.since)} · ${B.lines.toLocaleString()} lines saved</small></h3>`;
+  if (!B.graded) return `<div>${head}<p class="note">Lines are being saved with the model's chances at them. The first results appear once those games are final.</p></div>`;
+  return `<div>${head}
+    <p class="note">Every line the books posted, graded after the game. A bet is the side the model prefers, only when its chance beats the book's no-vig chance by the edge shown, at the book's median price. Units are profit per 1 staked.</p>
+    <div class="scroll"><table class="agate">
+      <tr><th>Model edge</th><th>Bets</th><th>Record</th><th>Hit rate</th><th>Units</th><th>Return</th></tr>
+      ${B.by_edge.map(e => `<tr><td>${Math.round(e.edge * 100)}+ points</td><td>${e.n}</td><td>${e.n ? `${e.won}–${e.n - e.won}` : "–"}</td>
+        <td>${e.n ? pct(e.hit, 1) : "–"}</td><td class="${e.units > 0 ? "pos" : e.units < 0 ? "neg" : ""}">${e.n ? (e.units > 0 ? "+" : "") + e.units.toFixed(2) : "–"}</td>
+        <td>${e.n ? (e.roi > 0 ? "+" : "") + pct(e.roi, 1) : "–"}</td></tr>`).join("")}
+    </table></div>
+    <p class="note">Over all ${B.graded.toLocaleString()} graded lines the over hit ${pct(B.over_rate, 1)}; the model's average chance of the over was ${pct(B.avg_p_over, 1)}. A few dozen bets is mostly luck: wait for hundreds before trusting the return.</p></div>`;
+}
+
 function renderPicks() {
   const el = $("tab-picks");
   if (!PK) { el.innerHTML = `<p class="deck">No picks published yet. They appear after the next data update.</p>`; return; }
@@ -1190,6 +1229,8 @@ function renderPicks() {
       <div class="legend" style="margin-top:12px"><span><i style="background:var(--over)"></i>Hit rate so far</span><span class="muted">dashed: what the model predicted</span></div>
       ${lineChart(hitSeries(sim.daily), sim.avg_p, `MODEL SAID ${pct(sim.avg_p)}`)}
       ${accuracyTables(sim)}</div>` : ""}
+
+    ${booksRecord(PK.books)}
 
     <div class="warn"><b>Read this before betting on it.</b> These picks are graded against a line set from recent form, not a sportsbook's. Books know about injuries, role changes and new teams, so their lines are sharper and the model's edge against them is much smaller than these hit rates. Use the Line Desk with your book's actual line and odds.</div>
 

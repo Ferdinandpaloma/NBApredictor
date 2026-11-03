@@ -125,6 +125,9 @@
   .tag { display:inline-block; font:700 10px/1 var(--ui); letter-spacing:.12em; text-transform:uppercase;
          padding:3px 5px; border:1px solid currentColor; border-radius:2px; vertical-align:2px; margin-left:6px; }
   .tag.out { color:var(--bad); }
+  .tag.book { color:var(--ink-2); }
+  .booknote { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; border:1px solid var(--rule); padding:8px 10px; margin:10px 0; font:400 14px/1.45 var(--ui); }
+  .booknote .btn { padding:6px 10px; font-size:12px; }
   .tag.dtd { color:var(--warn); }
 
   /* ---------- team picks ---------- */
@@ -190,7 +193,7 @@
   h3.sub .logo { width:1.3em; height:1.3em; }
 
   /* ---------- agate tables ---------- */
-  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; position:relative; }  /* clips .sr labels too */
   table.agate { width:100%; border-collapse:collapse; font-size:14px; }
   .agate th { font:700 11px var(--ui); letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
               text-align:right; padding:6px 7px; border-bottom:1px solid var(--rule-strong); white-space:nowrap; }
