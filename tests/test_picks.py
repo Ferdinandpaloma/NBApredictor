@@ -53,6 +53,13 @@ class PickTests(unittest.TestCase):
         self.assertIsNone(picks.best_market(player("p", out=True)))
         self.assertIsNone(picks.best_market(player("p", minutes=12)))
 
+    def test_bench_players_need_recent_book_lines(self):
+        bench = player("p", mu=30, minutes=22)
+        self.assertIsNone(picks.best_market(bench))
+        self.assertIsNotNone(picks.best_market(bench, popular={"p"}))
+        made = picks.make_picks([bench, player("q", mu=30, minutes=22)], [], "t", popular={"q"})
+        self.assertEqual([x["player"] for x in made], ["q"])
+
     def test_only_todays_slate_and_strongest_first(self):
         ps = [player("a", mu=26), player("b", mu=34), player("c", date="2026-10-29", game="G2", mu=40)]
         made = picks.make_picks(ps, [], "t")

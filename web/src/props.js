@@ -1193,7 +1193,7 @@ function renderPicks() {
   const byId = Object.fromEntries(P.players.map(p => [p.id + "|" + p.game_id, p]));
   el.innerHTML = `<div class="reveal">
     <div><p class="kicker">Model picks</p><h2 class="head">The model's picks, graded</h2>
-      <p class="deck">Every morning the model picks up to ${r.per_day} over/unders where it disagrees most with a player's recent form. Picks lock when they're published and are graded from the box score after the game, so the record can't be cherry-picked.</p></div>
+      <p class="deck">Every morning the model picks up to ${r.per_day} over/unders where it disagrees most with a player's recent form, only on players sportsbooks post props for (a book line in the last two weeks, or ${r.popular_minutes ?? 28}+ projected minutes). Picks lock when they're published and are graded from the box score after the game, so the record can't be cherry-picked.</p></div>
 
     <div><h3 class="sub">${pending.length ? `Open picks · ${dayLabel(pending[0].date)}` : "Open picks"}<small>${pending.length} pending</small></h3>
     ${pending.length ? `<div class="scroll"><table class="agate">

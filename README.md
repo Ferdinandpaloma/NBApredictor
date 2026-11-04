@@ -76,7 +76,7 @@ The GitHub Action still runs but its build steps fail softly, so it just republi
 
 Each morning the build (`nbaelo/picks.py`) publishes up to 10 over/unders for the day's slate where the model disagrees most with a player's recent form, then grades them from the box scores once the games are final. Picks are stored in `data/picks.csv` and lock when published (a game's picks never change). The **Model Picks** tab shows open picks, the live record, hit rate vs the model's own predicted rate (by confidence and by market), and a simulation of the same rules on last season.
 
-The line for each pick is the half point where recent form alone is closest to 50/50 (a stand-in for a book line), and only markets a book would plausibly post count, so trivial picks like "under 0.5 threes" for a center are excluded. Because real sportsbook lines are sharper than recent form, the tracker measures accuracy, not profit; use My Bets with real odds for that.
+The line for each pick is the half point where recent form alone is closest to 50/50 (a stand-in for a book line), and only markets a book would plausibly post count, so trivial picks like "under 0.5 threes" for a center are excluded. Picks are also limited to players books actually post props for: anyone with a sportsbook line in the last 14 days (`data/book_lines.csv`), or 28+ projected minutes. Without this, most picks went to bench players whose recent form lagged a bigger role, and nobody offered those lines. Because real sportsbook lines are sharper than recent form, the tracker measures accuracy, not profit; use My Bets with real odds for that.
 
 ## News & injuries
 

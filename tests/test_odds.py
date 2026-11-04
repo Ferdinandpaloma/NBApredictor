@@ -78,6 +78,10 @@ class BookLineTests(unittest.TestCase):
         self.assertEqual(len(out), 4)
         self.assertEqual([r["line"] for r in out if r["player_id"] == "1"], [29.5])
 
+    def test_popular_players(self):
+        rows = self.rows() + [dict(self.rows()[0], player_id="old", date="2026-10-01")]
+        self.assertEqual(booklines.popular(rows, "2026-11-05", 14), {"1", "2", "3", "4"})
+
     def test_round_trip(self):
         import tempfile
         rows = self.rows()

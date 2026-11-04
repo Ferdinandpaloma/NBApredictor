@@ -14,6 +14,10 @@ Rules (kept simple and fixed, so the record means something):
 - The market must be one a book would actually post: recent form has to put
   that line near a coin flip (FORM_BAND). That rules out things like "under
   0.5 threes" for a center who never shoots them.
+- Only players a book would post props for: a sportsbook line in the last
+  POPULAR_DAYS days (data/book_lines.csv), or a projected POPULAR_MINUTES+
+  (books post nearly every 28-minute player; picks on fringe bench players
+  can't be bet).
 - A pick needs the model to give one side at least MIN_P, a projected
   MIN_MINUTES+, and no "likely out" flag. One pick per player (their
   strongest market), at most PER_DAY a day, strongest first.
@@ -34,6 +38,8 @@ MIN_P = 0.58
 FORM_BAND = (0.38, 0.62)  # recent form's P(over) at the line must fall in here
 PER_DAY = 10
 MIN_MINUTES = 20.0
+POPULAR_MINUTES = 28.0  # without recent book lines, a player needs this many projected minutes
+POPULAR_DAYS = 14
 ODDS = -110
 WIN = 100 / 110  # units won per unit staked at -110
 BUCKETS = [(0.58, 0.62), (0.62, 0.66), (0.66, 1.01)]
@@ -55,11 +61,15 @@ def form_line(stat: str, l10, param):
     return best if best.size > 1 else best[0]
 
 
-def best_market(player: dict, cal: dict | None = None) -> dict | None:
+def best_market(player: dict, cal: dict | None = None, popular: set | None = None) -> dict | None:
     """The player's strongest over/under among MARKETS, or None if none qualifies.
     `cal` is the per-stat calibration applied to the model's probability (not to
-    recent form's, which only sets the line)."""
-    if player.get("likely_out") or (player["proj"]["min"][0] or 0) < MIN_MINUTES:
+    recent form's, which only sets the line). `popular` is the ids of players
+    with recent sportsbook lines."""
+    minutes = player["proj"]["min"][0] or 0
+    if player.get("likely_out") or minutes < MIN_MINUTES:
+        return None
+    if minutes < POPULAR_MINUTES and str(player["id"]) not in (popular or ()):
         return None
     best = None
     for t in MARKETS:
@@ -79,7 +89,8 @@ def best_market(player: dict, cal: dict | None = None) -> dict | None:
     return best
 
 
-def make_picks(players: list[dict], existing: list[dict], made_at: str, cal: dict | None = None) -> list[dict]:
+def make_picks(players: list[dict], existing: list[dict], made_at: str, cal: dict | None = None,
+               popular: set | None = None) -> list[dict]:
     """New picks for the earliest upcoming date. Games that already have picks are locked."""
     if not players:
         return []
@@ -90,7 +101,7 @@ def make_picks(players: list[dict], existing: list[dict], made_at: str, cal: dic
     for pl in players:
         if pl["date"] != day or pl["game_id"] in locked:
             continue
-        m = best_market(pl, cal)
+        m = best_market(pl, cal, popular)
         if m:
             cands.append({"made_at": made_at, "date": day, "game_id": pl["game_id"],
                           "player_id": pl["id"], "player": pl["name"], "team": pl["team"],
@@ -167,11 +178,12 @@ def simulate(hold, mu, disp: dict, cal: dict | None = None) -> dict:
     `hold` is the feature frame for games the model wasn't trained on and `mu`
     its predicted means. Only players who actually played are in it, so there
     are no voids, and the dispersion was fitted on these same games: treat it
-    as a guide, not a live record.
+    as a guide, not a live record. There are no past book lines, so players
+    need POPULAR_MINUTES.
     """
     best_p = np.zeros(len(hold))
     best = [None] * len(hold)
-    ok = (mu["min"].to_numpy() >= MIN_MINUTES)
+    ok = (mu["min"].to_numpy() >= POPULAR_MINUTES)
     for t in MARKETS:
         l10 = hold[f"{t}_e5"].to_numpy(float)
         m = mu[t].to_numpy(float)

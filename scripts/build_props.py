@@ -244,13 +244,16 @@ def main() -> None:
     # The model's picks: grade earlier ones, lock in today's, and simulate last season.
     made = model_picks.load(PICKS)
     model_picks.grade(made, logs)
-    new = model_picks.make_picks(players, made, now_iso(), cal)
+    day = min((p["date"] for p in players), default=None)
+    popular = booklines.popular(booklines.load(BOOK_LINES), day, model_picks.POPULAR_DAYS) if day else set()
+    new = model_picks.make_picks(players, made, now_iso(), cal, popular)
     made += new
     model_picks.save(PICKS, made)
     write_json(args.out / "picks.json", {
         "built_at": now_iso(),
         "rules": {"markets": model_picks.MARKETS, "min_p": model_picks.MIN_P, "per_day": model_picks.PER_DAY,
-                  "min_minutes": model_picks.MIN_MINUTES, "odds": model_picks.ODDS},
+                  "min_minutes": model_picks.MIN_MINUTES,
+                  "popular_minutes": model_picks.POPULAR_MINUTES, "odds": model_picks.ODDS},
         "live": {**model_picks.summarize(made),
                  "picks": sorted(made, key=lambda x: (x["date"], x["p"]), reverse=True)},  # newest first
         "sim": model_picks.simulate(past, past_mu, disp, cal),

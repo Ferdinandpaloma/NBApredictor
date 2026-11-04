@@ -10,6 +10,7 @@ units are a real measure of value against real lines.
 from __future__ import annotations
 
 import csv
+from datetime import date, timedelta
 from pathlib import Path
 
 from .picks import _stat
@@ -60,6 +61,12 @@ def upsert(rows: list[dict], new: list[dict]) -> list[dict]:
     key = lambda r: (r["date"], str(r["player_id"]), r["stat"])  # noqa: E731
     fresh = {key(r) for r in new}
     return [r for r in rows if key(r) not in fresh] + new
+
+
+def popular(rows: list[dict], day: str, days: int) -> set[str]:
+    """Ids of players with a line in the `days` days before `day` (inclusive of `day`)."""
+    since = (date.fromisoformat(day) - timedelta(days=days)).isoformat()
+    return {str(r["player_id"]) for r in rows if since <= r["date"] <= day}
 
 
 def grade(rows: list[dict], logs: list[dict]) -> None:
