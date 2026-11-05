@@ -227,11 +227,21 @@
   .ticket .match span { white-space:nowrap; }
   .ticket .match em { font-style:normal; font-weight:600; font-size:15px; color:var(--muted); margin:0 3px; }
   .ticket .line { font-size:12px; color:var(--ink-2); }
-  .ticket .score { font-size:12px; margin:-8px 0 6px; min-height:0; }
-  .ticket .score b, .livegame b { font-weight:700; margin-right:4px; font-variant-numeric:tabular-nums; }
-  .livegame:empty, .livegame:has(> .live:empty) { display:none; }
-  .livegame { margin:4px 0 0; }
-  .livecell { font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ticket .match .sc { margin-left:auto; padding-left:8px; font-variant-numeric:tabular-nums; }
+  .ticket .match .sc:empty { display:none; }
+  .ticket .match:has(.sc:not(:empty)) span { display:flex; align-items:center; }
+  .ticket .match:has(.sc:not(:empty)) { margin-bottom:6px; }
+  .sc.trail, .bs-team.trail { color:var(--muted); }
+  .ticket .score { font:700 12px var(--ui); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin:0 0 8px; }
+  .ticket .score:empty { display:none; }
+  .bigscore .live:not(:empty) { display:flex; flex-wrap:wrap; align-items:center; gap:4px 14px; margin-top:12px;
+    font:900 clamp(34px, 6vw, 52px)/1 var(--display); text-transform:uppercase; }
+  .bigscore .logo { width:.8em; height:.8em; vertical-align:-.05em; margin:0 .12em; }
+  .bigscore b { font-variant-numeric:tabular-nums; }
+  .bs-dash { color:var(--muted); font-weight:600; }
+  .bs-clock { font:700 13px var(--ui); letter-spacing:.08em; color:var(--ink-2); align-self:center; }
+  .livecell { font-size:14px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .livecell b { font:900 20px/1 var(--display); margin-right:2px; }
   .livedot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--bad); margin-right:5px; vertical-align:1px; animation:livepulse 1.6s ease-in-out infinite; }
   @keyframes livepulse { 50% { opacity:.35; } }
   @media (prefers-reduced-motion: reduce) { .livedot { animation:none; } }

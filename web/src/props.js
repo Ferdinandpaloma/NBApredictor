@@ -268,15 +268,15 @@ function renderSlate() {
       <p class="deck">Projections for every rotation player. ▲▼ shows how the projection compares with the player's last 10 games. Tap a player to price a line.</p></div>
     <div class="slate" id="slate">${P.games.map(x => `<button class="ticket ${x.game_id === g.game_id ? "on" : ""}" data-g="${x.game_id}">
         <div class="day">${shortDay(x.date)}<span data-lg-hide="${esc(gameKey(x.date, x.away, x.home))}">${x.tip ? " · " + tipTime(x.tip) : ""}</span></div>
-        <div class="match"><span>${logo(x.away)}${x.away}</span><em>@</em><span>${logo(x.home)}${x.home}</span></div>
-        <div class="score">${liveGame(x.date, x.away, x.home)}</div>
+        <div class="match"><span>${logo(x.away)}${x.away}<em>@</em>${liveScore(x.date, x.away, x.home, "away")}</span><span>${logo(x.home)}${x.home}${liveScore(x.date, x.away, x.home, "home")}</span></div>
+        <div class="score" data-lc="${esc(gameKey(x.date, x.away, x.home))}"></div>
         <div class="line">${x.home_spread == null ? "&nbsp;" : "Elo: " + (x.home_spread <= 0 ? `${x.home} −${Math.abs(x.home_spread)}` : `${x.away} −${x.home_spread}`)}</div>
       </button>`).join("")}</div>
     <div class="gamehead">
       <div><p class="kicker">${dayLabel(g.date)}${g.tip ? " · " + tipTime(g.tip) : ""}</p>
         <h2 class="head">${logo(g.away)} ${g.away} at ${logo(g.home)} ${g.home}</h2>
         <p class="note" style="margin:6px 0 0">${longDate(g.date)}${fav ? ` · Elo favorite: ${fav}` : ""}</p>
-        <p class="note livegame">${liveGame(g.date, g.away, g.home)}</p></div>
+        <div class="bigscore">${liveGame(g.date, g.away, g.home)}</div></div>
       <div class="controls" style="margin:0">
         <div class="seg" id="groups">${Object.keys(GROUPS).map(k => `<button data-k="${k}" class="${k === S.group ? "on" : ""}">${{ main:"Main", combos:"Combos", more:"More" }[k]}</button>`).join("")}</div>
         <label class="check"><input type="checkbox" id="showout" ${S.showOut ? "checked" : ""}> Show likely out</label>
@@ -303,10 +303,15 @@ const liveLeg = l => `<span class="live" data-ll="${esc(gameKey(...legGame(l)))}
   data-s="${l.stat}" data-l="${l.line}" data-side="${l.side}"></span>`;
 const clockText = g => g.state === "post" ? g.detail || "Final" : g.detail;
 
+const liveScore = (date, away, home, side) => `<b class="sc" data-sc="${esc(gameKey(date, away, home))}" data-side="${side}"></b>`;
+const clockLine = g => !g || g.state === "pre" ? "" : `${g.state === "in" ? `<i class="livedot"></i>` : ""}${esc(clockText(g))}`;
+
+// The game header's scoreboard: both scores large, the team ahead in full ink.
 function scoreText(g) {
   if (!g || g.state === "pre") return "";
-  const live = g.state === "in" ? `<i class="livedot"></i>` : "";
-  return `${live}<b>${g.away} ${g.awayScore}</b> <b>${g.home} ${g.homeScore}</b> <span class="muted">${esc(clockText(g))}</span>`;
+  const lead = s => (s === "away" ? g.awayScore > g.homeScore : g.homeScore > g.awayScore) ? "" : "trail";
+  return `<span class="bs-team ${lead("away")}">${logo(g.away)}${g.away} <b>${g.awayScore}</b></span><span class="bs-dash">–</span>
+    <span class="bs-team ${lead("home")}"><b>${g.homeScore}</b> ${g.home}${logo(g.home)}</span><span class="bs-clock">${clockLine(g)}</span>`;
 }
 
 function legText(el) {
@@ -329,6 +334,12 @@ function legText(el) {
 
 function paintLive(root = document) {
   root.querySelectorAll("[data-lg]").forEach(el => { el.innerHTML = scoreText(LIVE.games.get(el.dataset.lg)); });
+  root.querySelectorAll("[data-lc]").forEach(el => { el.innerHTML = clockLine(LIVE.games.get(el.dataset.lc)); });
+  root.querySelectorAll("[data-sc]").forEach(el => {
+    const g = LIVE.games.get(el.dataset.sc), on = g && g.state !== "pre";
+    const [mine, theirs] = !on ? [] : el.dataset.side === "away" ? [g.awayScore, g.homeScore] : [g.homeScore, g.awayScore];
+    el.textContent = on ? mine : ""; el.classList.toggle("trail", !!on && mine < theirs);
+  });
   root.querySelectorAll("[data-ll]").forEach(el => { el.innerHTML = legText(el); });
   root.querySelectorAll("[data-lg-hide]").forEach(el => {  // the tip time, until the game starts
     const g = LIVE.games.get(el.dataset.lgHide); el.hidden = !!g && g.state !== "pre"; });
