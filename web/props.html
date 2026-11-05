@@ -227,6 +227,14 @@
   .ticket .match span { white-space:nowrap; }
   .ticket .match em { font-style:normal; font-weight:600; font-size:15px; color:var(--muted); margin:0 3px; }
   .ticket .line { font-size:12px; color:var(--ink-2); }
+  .ticket .score { font-size:12px; margin:-8px 0 6px; min-height:0; }
+  .ticket .score b, .livegame b { font-weight:700; margin-right:4px; font-variant-numeric:tabular-nums; }
+  .livegame:empty, .livegame:has(> .live:empty) { display:none; }
+  .livegame { margin:4px 0 0; }
+  .livecell { font-size:13px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .livedot { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--bad); margin-right:5px; vertical-align:1px; animation:livepulse 1.6s ease-in-out infinite; }
+  @keyframes livepulse { 50% { opacity:.35; } }
+  @media (prefers-reduced-motion: reduce) { .livedot { animation:none; } }
   .gamehead { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:12px; margin-top:18px; }
   .teams { display:grid; grid-template-columns:1fr 1fr; gap:0 34px; }
   .teams > div, .desk > *, .calib > * { min-width:0; }

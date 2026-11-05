@@ -1,5 +1,6 @@
 import { inject, pageview } from "@vercel/analytics";
 import { TEAM_NAMES, loadInjuries, loadNews, loadTransactions, nameKey } from "./news.js";
+import { etDate, legNow, loadBox, loadScoreboard } from "./live.js";
 import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
 
 // Vercel Web Analytics: page views, counted without cookies. Does nothing off Vercel.
@@ -63,13 +64,13 @@ const store = { get(k) { try { return localStorage.getItem(k); } catch { return 
 // ---------- dates ----------
 const today = new Date(); today.setHours(0, 0, 0, 0);
 function dayLabel(d) {
-  const dt = new Date(d + "T12:00:00"), diff = Math.round((dt - today) / 864e5);
+  const dt = new Date(d + "T00:00:00"), diff = Math.round((dt - today) / 864e5);
   if (diff === 0) return "Tonight";
   if (diff === 1) return "Tomorrow";
   return dt.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
 }
 function shortDay(d) {
-  const dt = new Date(d + "T12:00:00"), diff = Math.round((dt - today) / 864e5);
+  const dt = new Date(d + "T00:00:00"), diff = Math.round((dt - today) / 864e5);
   return diff === 0 ? "Tonight" : dt.toLocaleDateString(undefined, { weekday:"short" });
 }
 const tipTime = t => t ? new Date(t).toLocaleTimeString([], { hour:"numeric", minute:"2-digit" }) : "";
@@ -266,14 +267,16 @@ function renderSlate() {
     <div><p class="kicker">The slate</p><h2 class="head">Next game for all 30 teams</h2>
       <p class="deck">Projections for every rotation player. ▲▼ shows how the projection compares with the player's last 10 games. Tap a player to price a line.</p></div>
     <div class="slate" id="slate">${P.games.map(x => `<button class="ticket ${x.game_id === g.game_id ? "on" : ""}" data-g="${x.game_id}">
-        <div class="day">${shortDay(x.date)}${x.tip ? " · " + tipTime(x.tip) : ""}</div>
+        <div class="day">${shortDay(x.date)}<span data-lg-hide="${esc(gameKey(x.date, x.away, x.home))}">${x.tip ? " · " + tipTime(x.tip) : ""}</span></div>
         <div class="match"><span>${logo(x.away)}${x.away}</span><em>@</em><span>${logo(x.home)}${x.home}</span></div>
+        <div class="score">${liveGame(x.date, x.away, x.home)}</div>
         <div class="line">${x.home_spread == null ? "&nbsp;" : "Elo: " + (x.home_spread <= 0 ? `${x.home} −${Math.abs(x.home_spread)}` : `${x.away} −${x.home_spread}`)}</div>
       </button>`).join("")}</div>
     <div class="gamehead">
       <div><p class="kicker">${dayLabel(g.date)}${g.tip ? " · " + tipTime(g.tip) : ""}</p>
         <h2 class="head">${logo(g.away)} ${g.away} at ${logo(g.home)} ${g.home}</h2>
-        <p class="note" style="margin:6px 0 0">${longDate(g.date)}${fav ? ` · Elo favorite: ${fav}` : ""}</p></div>
+        <p class="note" style="margin:6px 0 0">${longDate(g.date)}${fav ? ` · Elo favorite: ${fav}` : ""}</p>
+        <p class="note livegame">${liveGame(g.date, g.away, g.home)}</p></div>
       <div class="controls" style="margin:0">
         <div class="seg" id="groups">${Object.keys(GROUPS).map(k => `<button data-k="${k}" class="${k === S.group ? "on" : ""}">${{ main:"Main", combos:"Combos", more:"More" }[k]}</button>`).join("")}</div>
         <label class="check"><input type="checkbox" id="showout" ${S.showOut ? "checked" : ""}> Show likely out</label>
@@ -286,7 +289,72 @@ function renderSlate() {
   $("showout").onchange = e => { S.showOut = e.target.checked; renderSlate(); };
   el.querySelectorAll("tr[data-pid]").forEach(tr => tr.onclick = () => openDesk(tr.dataset.pid, GROUPS[S.group][0]));
   const on = el.querySelector(".ticket.on"); on?.scrollIntoView({ block:"nearest", inline:"nearest" });
+  paintLive(el);
 }
+
+// ==================== LIVE SCORES ====================
+// Renderers leave placeholders (liveGame / liveLeg); paintLive fills them from ESPN's live feeds,
+// and the poller refreshes them every 30 seconds while a game on the page is on.
+const LIVE = { games:new Map(), box:new Map(), timer:0, busy:false };
+const gameKey = (date, away, home) => `${date}|${away}|${home}`;
+const legGame = l => [l.date, l.home ? l.opp : l.team, l.home ? l.team : l.opp];
+const liveGame = (date, away, home) => `<span class="live" data-lg="${esc(gameKey(date, away, home))}"></span>`;
+const liveLeg = l => `<span class="live" data-ll="${esc(gameKey(...legGame(l)))}" data-n="${esc(l.name ?? l.player)}"
+  data-s="${l.stat}" data-l="${l.line}" data-side="${l.side}"></span>`;
+const clockText = g => g.state === "post" ? g.detail || "Final" : g.detail;
+
+function scoreText(g) {
+  if (!g || g.state === "pre") return "";
+  const live = g.state === "in" ? `<i class="livedot"></i>` : "";
+  return `${live}<b>${g.away} ${g.awayScore}</b> <b>${g.home} ${g.homeScore}</b> <span class="muted">${esc(clockText(g))}</span>`;
+}
+
+function legText(el) {
+  const g = LIVE.games.get(el.dataset.ll);
+  if (!g || g.state === "pre") return "";
+  const box = LIVE.box.get(g.id);
+  if (!box) return `<span class="muted">${esc(clockText(g))}</span>`;
+  const leg = { stat:el.dataset.s, line:+el.dataset.l, side:el.dataset.side };
+  const r = legNow(leg, g, box.get(nameKey(el.dataset.n)) || null), lab = SHORT[leg.stat] || leg.stat;
+  const when = g.state === "in" ? `<span class="muted"> · ${esc(clockText(g))}</span>` : "";
+  if (r.status === "dnp") return `<span class="muted">Not in yet${when}</span>`;
+  if (r.status === "void") return `<span class="st void">didn't play</span>`;
+  if (r.status === "live") {
+    const left = leg.side === "over" ? `${fmt(r.need, 0)} to go` : `${fmt(Math.ceil(leg.line) - r.cur, 0)} to spare`;
+    return `<i class="livedot"></i><b>${fmt(r.cur, 0)}</b> ${lab} · ${left}${when}`;
+  }
+  const word = { won:r.final ? "won" : "hit", lost:r.final ? "lost" : "busted", push:"push" }[r.status];
+  return `<b>${fmt(r.cur, 0)}</b> ${lab} <span class="st ${r.status}">${word}</span>${when}`;
+}
+
+function paintLive(root = document) {
+  root.querySelectorAll("[data-lg]").forEach(el => { el.innerHTML = scoreText(LIVE.games.get(el.dataset.lg)); });
+  root.querySelectorAll("[data-ll]").forEach(el => { el.innerHTML = legText(el); });
+  root.querySelectorAll("[data-lg-hide]").forEach(el => {  // the tip time, until the game starts
+    const g = LIVE.games.get(el.dataset.lgHide); el.hidden = !!g && g.state !== "pre"; });
+  if (!LIVE.timer) pollLive();
+}
+
+async function pollLive() {
+  clearTimeout(LIVE.timer); LIVE.timer = setTimeout(pollLive, 5 * 6e4);
+  if (LIVE.busy || document.visibilityState !== "visible") return;
+  const keys = el => [...document.querySelectorAll(`[${el}]`)].map(x => x.getAttribute(el));
+  const games = keys("data-lg"), legs = new Set(keys("data-ll"));
+  const today = etDate(new Date().toISOString()), yesterday = etDate(new Date(Date.now() - 864e5).toISOString());
+  const days = [...new Set([...games, ...legs].map(k => k.split("|")[0]))].filter(d => d === today || d === yesterday);
+  if (!days.length) return;
+  LIVE.busy = true;
+  try {
+    for (const list of await Promise.all(days.map(d => loadScoreboard(d).catch(() => []))))
+      for (const g of list) LIVE.games.set(gameKey(g.date, g.away, g.home), g);
+    // Box scores only for games someone on the page has a bet or pick in; a final one is fetched once.
+    const need = [...legs].map(k => LIVE.games.get(k)).filter(g => g && (g.state === "in" || (g.state === "post" && !LIVE.box.has(g.id))));
+    await Promise.all([...new Set(need)].map(g => loadBox(g.id).then(b => LIVE.box.set(g.id, b)).catch(() => {})));
+  } finally { LIVE.busy = false; }
+  paintLive();
+  if ([...LIVE.games.values()].some(g => g.state === "in")) { clearTimeout(LIVE.timer); LIVE.timer = setTimeout(pollLive, 3e4); }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") pollLive(); });
 
 // ==================== THE BOARD ====================
 function renderBoard() {
@@ -1095,7 +1163,7 @@ function renderBets() {
           <tr><th>Game</th><th>Player</th><th>Bet</th><th>Odds</th><th>Stake</th><th>Model</th><th>Result</th><th>P/L</th><th></th></tr>
           ${graded.map(g => { const b = g.bet, pl = profit(b, g.status, g.odds);
             const tail = `<td>${showOdds(b.odds)}</td><td>${b.stake}u</td><td>${pct(b.modelP)}</td>
-              <td>${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
+              <td>${!b.legs && g.status === "pending" ? `<span class="livecell">${liveLeg(b)}</span> ` : ""}${g.actual != null ? `<b>${fmt(g.actual, 0)}</b> ` : ""}<span class="st ${g.status}">${g.status}</span></td>
               <td class="${pl > 0 ? "pos" : pl < 0 ? "neg" : "muted"}">${g.status === "pending" ? "–" : u(pl)}</td>
               <td><button class="link del" data-id="${b.id}" aria-label="Delete bet">Delete</button></td></tr>`;
             if (b.legs) return `<tr class="parlay-row"><td class="muted">${esc(b.date)}</td>
@@ -1105,12 +1173,13 @@ function renderBets() {
               <td>${face(l.pid, l.name)}<span class="pname">${esc(l.name)}</span> <span class="muted">${logo(l.team)}${esc(l.team)} ${l.home ? "vs" : "@"} ${logo(l.opp)}${esc(l.opp)}</span></td>
               <td>${l.side === "over" ? "Over" : "Under"} ${l.line} ${SHORT[l.stat] || esc(l.stat)}</td>
               <td class="muted">${showOdds(l.odds)}</td><td></td><td class="muted">${pct(l.modelP)}</td>
-              <td>${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
+              <td>${g.legs[i].status === "pending" ? `<span class="livecell">${liveLeg(l)}</span> ` : ""}${g.legs[i].actual != null ? `<b>${fmt(g.legs[i].actual, 0)}</b> ` : ""}<span class="st ${g.legs[i].status}">${g.legs[i].status}</span></td><td></td><td></td></tr>`).join("");
             return `<tr><td class="muted">${esc(b.date)}</td>
               <td>${face(b.pid, b.name)}<span class="pname">${esc(b.name)}</span> <span class="muted">${logo(b.team)}${esc(b.team)} ${b.home ? "vs" : "@"} ${logo(b.opp)}${esc(b.opp)}</span>${b.local && S.user ? '<span class="tag" title="Saved on this device, waiting to sync">device</span>' : ""}</td>
               <td>${b.side === "over" ? "Over" : "Under"} ${b.line} ${SHORT[b.stat] || esc(b.stat)}</td>${tail}`; }).join("")}
         </table></div>` : `<p class="deck">No bets yet. Open the <a href="#desk" id="todesk">Line Desk</a>, price a prop and tap “Save to My Bets”.</p>`}
-        <p class="note">Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void. A parlay loses if any leg loses; a leg that pushes or is void drops out and the parlay pays on the rest.</p></div>`;
+        <p class="note">While a game is on, pending bets show the player's live stat line (from ESPN, every 30 seconds). Bets settle once the morning data update includes that game. If the player doesn't play, the bet is void. A parlay loses if any leg loses; a leg that pushes or is void drops out and the parlay pays on the rest.</p></div>`;
+      paintLive(el);
       if ($("bout")) $("bout").onclick = () => acct.signOut();
       if ($("bsign")) $("bsign").onclick = openSignin;
       if ($("todesk")) $("todesk").onclick = e => { e.preventDefault(); go("desk"); };
@@ -1197,11 +1266,12 @@ function renderPicks() {
 
     <div><h3 class="sub">${pending.length ? `Open picks · ${dayLabel(pending[0].date)}` : "Open picks"}<small>${pending.length} pending</small></h3>
     ${pending.length ? `<div class="scroll"><table class="agate">
-      <tr><th>Player</th><th>Game</th><th>Pick</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
+      <tr><th>Player</th><th>Game</th><th>Pick</th><th>Live</th><th>Model</th><th>Form said</th><th>Proj</th><th>Form avg</th><th><span class="sr">Parlay</span></th></tr>
       ${pending.map(x => `<tr class="click" data-pid="${esc(x.player_id)}" data-g="${esc(x.game_id)}" data-s="${x.stat}" data-l="${x.line}">
         <td>${face(x.player_id, x.player)}<span class="pname">${esc(x.player)}</span> <span class="muted">${logo(x.team)}${esc(x.team)}</span>${injTag(injOf(x.player, byId[x.player_id + "|" + x.game_id]?.injury))}</td>
         <td class="muted">${x.home ? "vs" : "@"} ${logo(x.opp)}${esc(x.opp)} · ${dayLabel(x.date)}</td>
         <td><b class="lean ${x.side === "over" ? "o" : "u"}">${pickText(x)}</b></td>
+        <td class="livecell">${liveLeg(x)}</td>
         <td class="proj">${pct(x.p)}</td><td class="muted">${x.form_p ? pct(x.form_p) : "–"}</td>
         <td>${fmt(x.proj)}</td><td class="muted">${fmt(x.form)}</td>
         <td>${byId[x.player_id + "|" + x.game_id] ? addBtn(byId[x.player_id + "|" + x.game_id], x.stat, x.line, x.side, x.p) : ""}</td></tr>`).join("")}</table></div>
@@ -1247,4 +1317,5 @@ function renderPicks() {
   });
   if ($("pall")) $("pall").onclick = () => { S.picksAll = !S.picksAll; renderPicks(); };
   wireAddBtns(el);
+  paintLive(el);
 }

@@ -78,6 +78,10 @@ Each morning the build (`nbaelo/picks.py`) publishes up to 10 over/unders for th
 
 The line for each pick is the half point where recent form alone is closest to 50/50 (a stand-in for a book line), and only markets a book would plausibly post count, so trivial picks like "under 0.5 threes" for a center are excluded. Picks are also limited to players books actually post props for: anyone with a sportsbook line in the last 14 days (`data/book_lines.csv`), or 28+ projected minutes. Without this, most picks went to bench players whose recent form lagged a bigger role, and nobody offered those lines. Because real sportsbook lines are sharper than recent form, the tracker measures accuracy, not profit; use My Bets with real odds for that.
 
+## Live scores
+
+While games are on, the page reads ESPN's public scoreboard and box scores in the browser (`web/src/live.js`) every 30 seconds (every 5 minutes otherwise, and not at all in a background tab). The Slate shows each game's score and clock; open Model Picks and pending bets in My Bets show the player's stat line so far: how many to go on an over or to spare on an under, and "hit" or "busted" as soon as it's decided. Box scores are only fetched for games with a pick or bet on the page. Official grading still waits for the morning update.
+
 ## News & injuries
 
 The **News** tab shows ESPN's NBA headlines, injury report and transactions, read live in the browser from ESPN's public feeds (`web/src/news.js`) and refreshed every 5 minutes while open. The morning build also saves a copy to `site/news.json` (`nbaelo/wire.py`, `nbaelo/injuries.py`), which the page falls back to if the live feed can't be reached.
