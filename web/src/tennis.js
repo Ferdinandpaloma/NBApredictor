@@ -1,9 +1,13 @@
 // The Tennis tab: ATP and WTA match predictions, ratings and the model's record.
-// Data comes from site/tennis/{atp,wta}.json (scripts/build_tennis.py).
+// Data comes from site/tennis/{atp,wta}.json (scripts/build_tennis.py); live scores from ESPN.
+import { loadTennis } from "./live.js";
 
 const T = { tour:"atp", view:"matches", data:{}, err:{}, sel:null, total:{}, hcap:{}, rsort:"elo", all:false };
 const TOURS = { atp:"ATP", wta:"WTA" };
 const SURF = { hard:"Hard", clay:"Clay", grass:"Grass" };
+// Live scores: cards leave a [data-tm] slot that paintLive fills in place (no re-render, so open
+// lines and inputs stay put). Polled every 30 seconds while a match is on, else every 5 minutes.
+const LIVE = { tour:{}, timer:0, el:null, esc:null, busy:false };
 
 // Over/under (and push) on a distribution stored as { from, p: [...] }.
 function overUnder(d, line) {
@@ -61,6 +65,9 @@ export function renderTennis(el, h) {
   });
   el.querySelectorAll("#rsort button").forEach(b => b.onclick = () => { T.rsort = b.dataset.k; rerender(); });
   const more = el.querySelector("#tall"); if (more) more.onclick = () => { T.all = !T.all; rerender(); };
+  LIVE.el = el; LIVE.esc = esc;
+  paintLive();
+  if (!LIVE.timer || (T.data[T.tour] && !LIVE.tour[T.tour])) pollLive();  // first time, or a tour not fetched yet
 
   function nameCell(p, win) {
     return `<span class="${win ? "win" : ""}">${esc(p.name)}</span> <span class="muted small">${esc(p.country)}</span>`;
@@ -99,6 +106,7 @@ export function renderTennis(el, h) {
         <div class="matchups">${ms.map(m => { const fav1 = m.p >= .5;
           return `<div class="matchup tmatch click ${T.sel === m.match_id ? "on" : ""}" data-m="${esc(m.match_id)}">
             <div class="mrow"><span>${nameCell(m.p1, fav1)}</span><span class="muted small">${esc(m.round)}${m.start ? " · " + tipTime(m.start) : ""}${m.state === "in" ? ` · <i class="livedot"></i>live` : ""}</span><span>${nameCell(m.p2, !fav1)}</span></div>
+            <div class="tscore" data-tm="${esc(m.match_id)}"></div>
             <div class="wbar"><i style="width:${m.p * 100}%;background:var(--ink)"></i><i style="width:${(1 - m.p) * 100}%;background:var(--muted)"></i></div>
             <div class="mrow small"><span class="${fav1 ? "win" : ""}">${pct(m.p)} · ${fairOdds(m.p)}</span><span class="muted">Elo ${m.p1.elo} – ${m.p2.elo}</span><span class="${!fav1 ? "win" : ""}">${fairOdds(1 - m.p)} · ${pct(1 - m.p)}</span></div>
             ${T.sel === m.match_id ? detail(m) : ""}
@@ -142,3 +150,48 @@ export function renderTennis(el, h) {
       <p class="note">Every completed match, main draw and qualifying, with the chance the model gave the winner before it started (the correction for each year was fitted on earlier years only). Retirements and walkovers aren't graded.</p>`;
   }
 }
+
+const lastName = n => String(n || "").split(" ").at(-1);
+
+function scoreHTML(m, g, esc) {
+  if (!g || g.state === "pre") return "";
+  const row = p => {
+    const x = g.players[p.id] || { games:[], tb:[] };
+    const serve = x.serving && g.state === "in" ? `<i class="serve" title="Serving"></i>` : "";
+    return `<div class="tsr ${x.winner ? "win" : ""}"><span class="tsn">${serve}${esc(lastName(p.name))}</span>${x.games.map((v, i) =>
+      `<b>${v}${x.tb[i] != null ? `<sup>${x.tb[i]}</sup>` : ""}</b>`).join("")}</div>`;
+  };
+  let tail = "";
+  if (g.state === "in") tail = `<i class="livedot"></i>${esc(g.detail || "Live")}`;
+  else {
+    const won = [m.p1, m.p2].find(p => g.players[p.id]?.winner);
+    const fav = m.p >= .5 ? m.p1 : m.p2;
+    tail = esc(g.detail || "Final") + (won ? ` <span class="st ${won.id === fav.id ? "won" : "lost"}">model ${won.id === fav.id ? "right" : "wrong"}</span>` : "");
+  }
+  return `<div class="tsrows">${row(m.p1)}${row(m.p2)}</div><div class="tstat">${tail}</div>`;
+}
+
+function paintLive() {
+  const el = LIVE.el, D = T.data[T.tour], map = LIVE.tour[T.tour];
+  if (!el || !D || !map) return;
+  const byId = Object.fromEntries(D.upcoming.map(m => [m.match_id, m]));
+  el.querySelectorAll("[data-tm]").forEach(slot => {
+    const m = byId[slot.dataset.tm];
+    slot.innerHTML = m ? scoreHTML(m, map.get(slot.dataset.tm), LIVE.esc) : "";
+  });
+}
+
+async function pollLive() {
+  clearTimeout(LIVE.timer); LIVE.timer = setTimeout(pollLive, 5 * 6e4);
+  const el = LIVE.el, D = T.data[T.tour];
+  if (!el || el.classList.contains("hidden") || document.visibilityState !== "visible" || !D?.upcoming.length) return;
+  if (LIVE.busy) return;
+  const tour = T.tour;
+  LIVE.busy = true;
+  try { LIVE.tour[tour] = await loadTennis(tour); } catch { return; } finally { LIVE.busy = false; }
+  paintLive();
+  const soon = Date.now() + 30 * 6e4;
+  const busy = D.upcoming.some(m => LIVE.tour[tour].get(m.match_id)?.state === "in" || (m.start && Date.parse(m.start) < soon));
+  if (busy) { clearTimeout(LIVE.timer); LIVE.timer = setTimeout(pollLive, 3e4); }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && LIVE.el) pollLive(); });

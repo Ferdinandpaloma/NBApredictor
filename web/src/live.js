@@ -67,3 +67,25 @@ const get = async path => {
 };
 export const loadScoreboard = day => get("scoreboard?dates=" + day.replaceAll("-", "")).then(parseScoreboard);
 export const loadBox = id => get("summary?event=" + id).then(parseBox);
+
+// Tennis: one scoreboard per tour holds every match of the tournaments on now.
+// Returns match id -> { state, detail, players: { espn id: { games, tb, winner, serving } } }.
+export function parseTennis(raw) {
+  const out = new Map();
+  for (const e of raw.events || []) for (const g of e.groupings || []) {
+    if (!/singles$/.test(g.grouping?.slug || "")) continue;
+    for (const c of g.competitions || []) {
+      const st = c.status?.type || {};
+      const players = {};
+      for (const x of c.competitors || []) {
+        const sets = (x.linescores || []).filter(l => l.value != null);
+        players[String(x.id)] = { games:sets.map(l => +l.value), tb:sets.map(l => l.tiebreak ?? null),
+          winner:!!x.winner, serving:!!x.possession };
+      }
+      out.set(String(c.id), { state:st.state || "pre", detail:st.shortDetail || st.detail || "", players });
+    }
+  }
+  return out;
+}
+export const loadTennis = tour => fetch(`https://site.api.espn.com/apis/site/v2/sports/tennis/${tour}/scoreboard`, { cache:"no-store" })
+  .then(r => { if (!r.ok) throw new Error(`ESPN ${r.status}`); return r.json(); }).then(parseTennis);

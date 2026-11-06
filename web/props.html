@@ -146,6 +146,14 @@
   .tmatch { cursor:pointer; } .tmatch .win { font-weight:800; }
   .tmatch.on { border-bottom-color:var(--ink-2); }
   .tmatch .small { font-size:12px; }
+  .tscore:empty { display:none; }
+  .tscore { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:8px 0 2px; }
+  .tsr { display:flex; align-items:baseline; gap:10px; font:800 22px/1.15 var(--display); font-variant-numeric:tabular-nums; color:var(--muted); }
+  .tsr.win, .tscore:has(.livedot) .tsr { color:var(--ink); }
+  .tsn { min-width:110px; font-size:16px; letter-spacing:.03em; text-transform:uppercase; }
+  .tsr b { min-width:18px; text-align:center; } .tsr sup { font-size:.5em; margin-left:1px; }
+  .serve { display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--over); margin-right:6px; vertical-align:2px; }
+  .tstat { font:700 12px var(--ui); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); text-align:right; white-space:nowrap; }
   .tdetail { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px 22px; margin-top:12px; padding-top:12px; border-top:1px solid var(--rule); cursor:default; }
   .tdetail h4 { font:800 14px var(--display); text-transform:uppercase; letter-spacing:.06em; margin:0 0 6px; }
   .tdetail .stepper { max-width:170px; }

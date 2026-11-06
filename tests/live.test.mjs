@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { etDate, legNow, parseBox, parseScoreboard, statOf } from "../web/src/live.js";
+import { etDate, legNow, parseBox, parseScoreboard, parseTennis, statOf } from "../web/src/live.js";
 
 const comp = (abbr, homeAway, score) => ({ homeAway, score:String(score), team:{ abbreviation:abbr } });
 
@@ -36,4 +36,19 @@ test("where a bet stands mid-game and at the final", () => {
   assert.equal(legNow(over, live, null).status, "dnp");
   assert.equal(legNow(over, final, null).status, "void");
   assert.equal(legNow(over, { state:"pre" }, row).status, "pre");
+});
+
+test("tennis scoreboard: set scores, tiebreaks and who's serving by match id", () => {
+  const p = (id, games, extra = {}) => ({ id, linescores:games.map(([v, t]) => ({ value:v, ...(t ? { tiebreak:t } : {}) })), ...extra });
+  const raw = { events:[{ groupings:[
+    { grouping:{ slug:"mens-singles" }, competitions:[
+      { id:"186507", status:{ type:{ state:"in", shortDetail:"2nd Set" } },
+        competitors:[p("3782", [[7, 7], [3]], { possession:true }), p("2989", [[6, 4], [2]])] }] },
+    { grouping:{ slug:"mens-doubles" }, competitions:[{ id:"x", status:{ type:{ state:"in" } }, competitors:[] }] }] }] };
+  const m = parseTennis(raw);
+  assert.equal(m.size, 1);
+  const g = m.get("186507");
+  assert.equal(g.state, "in"); assert.equal(g.detail, "2nd Set");
+  assert.deepEqual(g.players["3782"], { games:[7, 3], tb:[7, null], winner:false, serving:true });
+  assert.deepEqual(g.players["2989"].games, [6, 2]);
 });

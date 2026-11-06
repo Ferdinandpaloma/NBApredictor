@@ -114,6 +114,8 @@ The **Tennis** tab covers ATP and WTA singles: every match on ESPN's schedule (m
 - **Record**: tested on matches it hadn't seen, it picked the winner 63.8% of ATP matches and 64.6% of WTA matches in 2023-26, and its favourites won about as often as it said (e.g. 80%+ favourites: won 86% (ATP) and 87% (WTA) vs 85% and 84% predicted). Recent seasons are less predictable than the Big Four years (2015-17: 69%). Total games is the weak spot: the ratings know lopsided matches run shorter, but not who serves big, so against a sensible line the over/under is close to a coin flip.
 - **Not included**: player props (aces, double faults) have no free data source since the public dataset that had serve stats was taken down. Doubles aren't covered.
 
+While matches are on, the Tennis tab reads ESPN's live tennis scoreboard in the browser (every 30 seconds, or 5 minutes when nothing is on soon) and shows set scores, tiebreaks and who's serving on each match card; finished matches show whether the model's favourite won.
+
 `scripts/build_tennis.py` runs in both daily updates (morning and pre-game) and writes `site/tennis/{atp,wta}.json`.
 
 ## Team logos
