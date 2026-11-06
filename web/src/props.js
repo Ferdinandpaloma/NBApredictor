@@ -1,6 +1,7 @@
 import { inject, pageview } from "@vercel/analytics";
 import { TEAM_NAMES, loadInjuries, loadNews, loadTransactions, nameKey } from "./news.js";
 import { etDate, legNow, loadBox, loadScoreboard } from "./live.js";
+import { renderTennis } from "./tennis.js";
 import { grade, gradeParlay, parlayOdds, profit, summarize, toAmerican, toDecimal } from "./grade.js";
 
 // Vercel Web Analytics: page views, counted without cookies. Does nothing off Vercel.
@@ -221,7 +222,8 @@ function go(tab) {
   S.tab = tab;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
-  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews, teams:renderTeams })[tab]();
+  ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews, teams:renderTeams,
+     tennis:() => renderTennis($("tab-tennis"), { esc, pct, fairOdds, dayLabel, tipTime }) })[tab]();
   history.replaceState(null, "", "#" + tab);
   renderParlayBar();
 }
@@ -688,7 +690,7 @@ Promise.all([
     <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
     <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
   const h = location.hash.slice(1);
-  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news", "teams"].includes(h) ? h : "slate");
+  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news", "teams", "tennis"].includes(h) ? h : "slate");
   refreshInjuries();
 }).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
 

@@ -38,9 +38,13 @@ fi
 
 $PY -m scripts.build
 $PY -m scripts.build_props --no-fetch $([ "$MODE" = pregame ] && echo --odds)
+# Tennis runs in both: the next day's order of play is usually out by the afternoon run.
+# A tennis failure shouldn't hold back the NBA update.
+$PY -m scripts.build_tennis || echo "tennis build failed"
 
 git add site/*.json site/players data/player_logs.csv data/picks.csv
 if [ -f data/book_lines.csv ]; then git add data/book_lines.csv; fi
+if [ -d site/tennis ]; then git add site/tennis data/tennis; fi
 if git diff --cached --quiet; then
   echo "no changes"
   exit 0

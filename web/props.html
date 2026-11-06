@@ -143,6 +143,15 @@
   .mrow > span:last-child .logo { margin:0 0 0 .3em; }
   .mrow.small { font:600 13px var(--ui); color:var(--ink-2); }
   .mrow.small .win { color:var(--ink); font-weight:800; }
+  .tmatch { cursor:pointer; } .tmatch .win { font-weight:800; }
+  .tmatch.on { border-bottom-color:var(--ink-2); }
+  .tmatch .small { font-size:12px; }
+  .tdetail { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px 22px; margin-top:12px; padding-top:12px; border-top:1px solid var(--rule); cursor:default; }
+  .tdetail h4 { font:800 14px var(--display); text-transform:uppercase; letter-spacing:.06em; margin:0 0 6px; }
+  .tdetail .stepper { max-width:170px; }
+  .tline { font-size:13px; margin:8px 0 2px; }
+  .matchups:has(.tmatch.on) { grid-template-columns:1fr; }
+  @media (max-width:700px) { .tdetail { grid-template-columns:1fr; } }
   .wbar { display:flex; gap:2px; height:12px; margin:7px 0 5px; }
   .wbar i { display:block; height:100%; }
   .wbar i:first-child { border-radius:4px 0 0 4px; } .wbar i:last-child { border-radius:0 4px 4px 0; }
@@ -199,6 +208,7 @@
               text-align:right; padding:6px 7px; border-bottom:1px solid var(--rule-strong); white-space:nowrap; }
   .agate td { text-align:right; padding:6px 7px; border-bottom:1px solid var(--rule); white-space:nowrap; }
   .agate th:first-child, .agate td:first-child { text-align:left; padding-left:0; }
+  .agate .tl { text-align:left; }
   .agate tr.click { cursor:pointer; }
   .agate tr.click:hover td { background:var(--paper-2); }
   .agate tr.dim td { opacity:.5; }
@@ -440,6 +450,7 @@
     <button data-tab="record">Track Record</button>
     <button data-tab="picks">Model Picks</button>
     <button data-tab="teams">Team Picks</button>
+    <button data-tab="tennis">Tennis</button>
     <button data-tab="news">News</button>
     <button data-tab="bets">My Bets</button>
   </nav>
@@ -452,6 +463,7 @@
     <section id="tab-record" class="hidden"></section>
     <section id="tab-picks" class="hidden"></section>
     <section id="tab-teams" class="hidden"></section>
+    <section id="tab-tennis" class="hidden"></section>
     <section id="tab-news" class="hidden"></section>
     <section id="tab-bets" class="hidden"></section>
   </main>

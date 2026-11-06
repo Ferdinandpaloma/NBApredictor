@@ -104,6 +104,18 @@ Walk-forward backtest, 2023-24 to 2025-26, 83k player-games (87% with matchup hi
 
 The **Team Picks** tab also shows how the Elo picks did: every finished game this season with the model's pick, its confidence and whether it was right, plus hit rate by confidence and last season's record. `scripts/build.py` writes these to `site/team_results.json` by replaying the season (`past_picks` in `nbaelo/elo.py`), so each pick uses only the ratings the model had before that game.
 
+## Tennis
+
+The **Tennis** tab covers ATP and WTA singles: every match on ESPN's schedule (main draws and qualifying), with the chance each player wins, set betting, total games and the games handicap at any line, plus player ratings and the model's record.
+
+- **Data** (`tennis/espn.py`): ESPN's public scoreboard, one request per tour per month, back to 2010 (`python -m scripts.backfill_tennis 2010 2026`, about 110,000 matches in `data/tennis/`). ESPN doesn't give the surface, so `tennis/surfaces.py` maps tournament names to hard, clay or grass. Men's Slam main draws are best of five; everything else is best of three. Exhibitions (Laver Cup, Next Gen Finals and the like) are left out.
+- **Ratings** (`tennis/elo.py`): Elo with an overall rating and one per surface for every player. Predictions use 70% overall and 30% surface (tuned on 2023-26); K shrinks with a player's match count (FiveThirtyEight's formula). Walkovers don't count; retirements update the ratings but aren't graded. Win chances go through the same walk-forward calibration as the NBA model. For best of five, the edge is stretched through the scoring model, which improved Slam predictions (Brier 0.1877 → 0.1860).
+- **Sets and games** (`tennis/scoring.py`): tennis scoring is a Markov chain, so set scores and the full distributions of total games and game margin are computed exactly from each player's chance of winning a point on serve. Without serve stats, those chances are set around the tour's average for the surface so that they reproduce the win chance. One fixed gap makes matches too close (on the day, the real gap varies), so the gap is spread over a normal distribution. The average serve level and that spread were fitted per tour, surface and format on 2016-22 match lengths and deciding-set rates (`TOTALS` in `tennis/predict.py`).
+- **Record**: tested on matches it hadn't seen, it picked the winner 63.8% of ATP matches and 64.6% of WTA matches in 2023-26, and its favourites won about as often as it said (e.g. 80%+ favourites: won 86% (ATP) and 87% (WTA) vs 85% and 84% predicted). Recent seasons are less predictable than the Big Four years (2015-17: 69%). Total games is the weak spot: the ratings know lopsided matches run shorter, but not who serves big, so against a sensible line the over/under is close to a coin flip.
+- **Not included**: player props (aces, double faults) have no free data source since the public dataset that had serve stats was taken down. Doubles aren't covered.
+
+`scripts/build_tennis.py` runs in both daily updates (morning and pre-game) and writes `site/tennis/{atp,wta}.json`.
+
 ## Team logos
 
 `site/logos/` holds the 30 team logos (96px PNGs, plus dark-mode versions for the four teams that have one), downloaded from ESPN's public logo CDN by `scripts/fetch_logos.sh`. Re-run it only if a team rebrands; if the set of dark-mode logos changes, update `DARK_LOGOS` in `web/src/props.js`. The logos are the teams' trademarks, shown here only to identify them.
