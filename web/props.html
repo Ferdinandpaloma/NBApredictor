@@ -91,6 +91,15 @@
               padding:6px 0; font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); }
   .dateline b { color:var(--ink); font-weight:600; }
 
+  /* ---------- sport switch ---------- */
+  .sports { display:flex; gap:28px; padding:14px 0 0; border-bottom:2px solid var(--rule-strong); }
+  .sports button { background:none; border:0; padding:0 0 8px; margin-bottom:-2px; cursor:pointer; color:var(--muted);
+                   font:900 clamp(30px, 5vw, 44px)/1 var(--display); text-transform:uppercase; letter-spacing:.01em;
+                   border-bottom:5px solid transparent; }
+  .sports button:hover { color:var(--ink); }
+  .sports button.on { color:var(--ink); border-bottom-color:var(--over); }
+  nav.sections button[hidden], .dateline[hidden] { display:none; }
+
   /* ---------- section nav ---------- */
   nav.sections { position:sticky; top:env(safe-area-inset-top); z-index:5; background:var(--paper); border-bottom:1px solid var(--rule);
                  display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; margin-bottom:22px; }
@@ -444,23 +453,30 @@
 <body>
 <div class="wrap">
   <div class="ears">
-    <span>NBA · Player Props Edition</span>
+    <span id="edition">NBA · Player Props Edition</span>
     <span class="ear-r"><span id="acct"><button type="button" disabled>Sign in</button></span><button id="theme" type="button" aria-label="Switch theme">Auto</button></span>
   </div>
   <header class="mast"><h1>The Prop <span>Sheet</span></h1></header>
   <div class="dateline" id="dateline"><span>Loading the late edition…</span></div>
 
+  <div class="sports" id="sports" aria-label="Sport">
+    <button type="button" data-sport="nba" class="on">NBA</button>
+    <button type="button" data-sport="tennis">Tennis</button>
+  </div>
+
   <nav class="sections" id="nav">
-    <button data-tab="slate" class="on">Tonight's Slate</button>
-    <button data-tab="board">The Board</button>
-    <button data-tab="desk">Line Desk</button>
-    <button data-tab="files">Player Files</button>
-    <button data-tab="record">Track Record</button>
-    <button data-tab="picks">Model Picks</button>
-    <button data-tab="teams">Team Picks</button>
-    <button data-tab="tennis">Tennis</button>
-    <button data-tab="news">News</button>
-    <button data-tab="bets">My Bets</button>
+    <button data-sport="nba" data-tab="slate" class="on">Tonight's Slate</button>
+    <button data-sport="nba" data-tab="board">The Board</button>
+    <button data-sport="nba" data-tab="desk">Line Desk</button>
+    <button data-sport="nba" data-tab="files">Player Files</button>
+    <button data-sport="nba" data-tab="record">Track Record</button>
+    <button data-sport="nba" data-tab="picks">Model Picks</button>
+    <button data-sport="nba" data-tab="teams">Team Picks</button>
+    <button data-sport="nba" data-tab="news">News</button>
+    <button data-sport="nba" data-tab="bets">My Bets</button>
+    <button data-sport="tennis" data-tab="tennis" hidden>Matches</button>
+    <button data-sport="tennis" data-tab="tennis-ratings" hidden>Ratings</button>
+    <button data-sport="tennis" data-tab="tennis-record" hidden>Record</button>
   </nav>
 
   <main>

@@ -216,14 +216,29 @@ const fileRows = f => f.log.map(r => Object.fromEntries(f.cols.map((c, i) => [c,
 
 // ---------- navigation ----------
 $("nav").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) go(b.dataset.tab); });
+$("sports").addEventListener("click", e => { const b = e.target.closest("button[data-sport]"); if (b) go(lastTab[b.dataset.sport]); });
 let viewed = "";  // last tab logged to analytics
+// Two sports share the page: the big switch picks one, and the section nav shows that sport's tabs.
+// Tennis tabs all draw into one section (#tab-tennis) with a different view.
+const TABS = { nba:["slate", "board", "desk", "files", "record", "picks", "teams", "news", "bets"],
+               tennis:["tennis", "tennis-ratings", "tennis-record"] };
+const lastTab = { nba:"slate", tennis:"tennis" };
+const EDITION = { nba:"NBA · Player Props Edition", tennis:"ATP · WTA · Tennis Edition" };
+const sportOf = tab => tab.startsWith("tennis") ? "tennis" : "nba";
 function go(tab) {
   if (viewed !== tab) { viewed = tab; pageview({ route:"/props/" + tab, path:"/props/" + tab }); }
   S.tab = tab;
-  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
-  document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + tab));
+  const sport = sportOf(tab);
+  lastTab[sport] = tab;
+  document.querySelectorAll("#sports button").forEach(b => b.classList.toggle("on", b.dataset.sport === sport));
+  document.querySelectorAll("#nav button").forEach(b => { b.classList.toggle("on", b.dataset.tab === tab); b.hidden = b.dataset.sport !== sport; });
+  $("edition").textContent = EDITION[sport];
+  $("dateline").hidden = sport !== "nba";  // season, players and games are the NBA's
+  const section = sport === "tennis" ? "tennis" : tab;
+  document.querySelectorAll("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-" + section));
+  const tennis = view => () => renderTennis($("tab-tennis"), { esc, pct, fairOdds, dayLabel, tipTime }, view);
   ({ slate:renderSlate, board:renderBoard, desk:renderDesk, files:renderFiles, record:renderRecord, bets:renderBets, picks:renderPicks, news:renderNews, teams:renderTeams,
-     tennis:() => renderTennis($("tab-tennis"), { esc, pct, fairOdds, dayLabel, tipTime }) })[tab]();
+     tennis:tennis("matches"), "tennis-ratings":tennis("ratings"), "tennis-record":tennis("record") })[tab]();
   history.replaceState(null, "", "#" + tab);
   renderParlayBar();
 }
@@ -690,7 +705,7 @@ Promise.all([
     <span>Updated <b>${built.toLocaleString(undefined, { month:"short", day:"numeric", hour:"numeric", minute:"2-digit" })}</b></span>
     <span><b>${P.players.length}</b> players · <b>${P.games.length}</b> games</span>`;
   const h = location.hash.slice(1);
-  go(["slate", "board", "desk", "files", "record", "bets", "picks", "news", "teams", "tennis"].includes(h) ? h : "slate");
+  go([...TABS.nba, ...TABS.tennis].includes(h) ? h : "slate");
   refreshInjuries();
 }).catch(e => { $("dateline").innerHTML = `<span>Couldn't load projections: ${esc(e.message || e)}</span>`; });
 

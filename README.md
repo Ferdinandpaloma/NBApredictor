@@ -106,7 +106,7 @@ The **Team Picks** tab also shows how the Elo picks did: every finished game thi
 
 ## Tennis
 
-The **Tennis** tab covers ATP and WTA singles: every match on ESPN's schedule (main draws and qualifying), with the chance each player wins, set betting, total games and the games handicap at any line, plus player ratings and the model's record.
+The **Tennis** section (the NBA | Tennis switch at the top; tabs Matches, Ratings and Record) covers ATP and WTA singles: every match on ESPN's schedule (main draws and qualifying), with the chance each player wins, set betting, total games and the games handicap at any line, plus player ratings and the model's record.
 
 - **Data** (`tennis/espn.py`): ESPN's public scoreboard, one request per tour per month, back to 2010 (`python -m scripts.backfill_tennis 2010 2026`, about 110,000 matches in `data/tennis/`). ESPN doesn't give the surface, so `tennis/surfaces.py` maps tournament names to hard, clay or grass. Men's Slam main draws are best of five; everything else is best of three. Exhibitions (Laver Cup, Next Gen Finals and the like) are left out.
 - **Ratings** (`tennis/elo.py`): Elo with an overall rating and one per surface for every player. Predictions use 70% overall and 30% surface (tuned on 2023-26); K shrinks with a player's match count (FiveThirtyEight's formula). Walkovers don't count; retirements update the ratings but aren't graded. Win chances go through the same walk-forward calibration as the NBA model. For best of five, the edge is stretched through the scoring model, which improved Slam predictions (Brier 0.1877 → 0.1860).

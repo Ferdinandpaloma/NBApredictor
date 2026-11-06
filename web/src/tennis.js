@@ -33,7 +33,8 @@ function load(tour, rerender) {
     .then(rerender);
 }
 
-export function renderTennis(el, h) {
+export function renderTennis(el, h, view) {
+  if (view) T.view = view;
   const { esc, pct, fairOdds, dayLabel, tipTime } = h;
   const rerender = () => { if (!el.classList.contains("hidden")) renderTennis(el, h); };
   load(T.tour, rerender);
@@ -42,7 +43,6 @@ export function renderTennis(el, h) {
     <p class="deck">Every ATP and WTA match on ESPN's schedule, from a surface-aware Elo rating of each player. Win chances are corrected by how past predictions did; set scores and total games come from simulating the match point by point.</p></div>
     <div class="controls">
       <div class="seg" id="ttour">${Object.entries(TOURS).map(([k, v]) => `<button type="button" data-k="${k}" class="${k === T.tour ? "on" : ""}">${v}</button>`).join("")}</div>
-      <div class="seg" id="tview">${[["matches", "Matches"], ["ratings", "Ratings"], ["record", "Record"]].map(([k, v]) => `<button type="button" data-k="${k}" class="${k === T.view ? "on" : ""}">${v}</button>`).join("")}</div>
     </div>`;
   let body;
   if (T.err[T.tour]) body = `<div class="warn">${esc(T.err[T.tour])}</div>`;
@@ -51,7 +51,6 @@ export function renderTennis(el, h) {
   el.innerHTML = `<div class="reveal">${head}${body}</div>`;
 
   el.querySelector("#ttour").onclick = e => { const b = e.target.closest("button"); if (b) { T.tour = b.dataset.k; T.sel = null; T.all = false; rerender(); } };
-  el.querySelector("#tview").onclick = e => { const b = e.target.closest("button"); if (b) { T.view = b.dataset.k; rerender(); } };
   el.querySelectorAll(".tmatch[data-m]").forEach(c => c.onclick = () => { T.sel = T.sel === c.dataset.m ? null : c.dataset.m; rerender(); });
   el.querySelectorAll(".tdetail").forEach(d => d.onclick = e => e.stopPropagation());  // taps inside don't close it
   el.querySelectorAll("[data-step]").forEach(b => b.onclick = e => {
