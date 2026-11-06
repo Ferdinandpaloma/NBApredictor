@@ -153,6 +153,12 @@
   .mrow.small { font:600 13px var(--ui); color:var(--ink-2); }
   .mrow.small .win { color:var(--ink); font-weight:800; }
   .tmatch { cursor:pointer; } .tmatch .win { font-weight:800; }
+  /* Player 1 orange, player 2 blue: the bar, and a matching dot by each name. */
+  .wbar i.c1 { background:var(--over); } .wbar i.c2 { background:var(--under); }
+  .tmatch .wbar { height:14px; }
+  .pdot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:1px; }
+  .tmatch .pn { white-space:nowrap; }
+  .pdot.c1 { background:var(--over); } .pdot.c2 { background:var(--under); }
   .tmatch.on { border-bottom-color:var(--ink-2); }
   .tmatch .small { font-size:12px; }
   .tscore:empty { display:none; }

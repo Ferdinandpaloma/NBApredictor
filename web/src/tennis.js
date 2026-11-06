@@ -68,8 +68,8 @@ export function renderTennis(el, h, view) {
   paintLive();
   if (!LIVE.timer || (T.data[T.tour] && !LIVE.tour[T.tour])) pollLive();  // first time, or a tour not fetched yet
 
-  function nameCell(p, win) {
-    return `<span class="${win ? "win" : ""}">${esc(p.name)}</span> <span class="muted small">${esc(p.country)}</span>`;
+  function nameCell(p, win, c) {
+    return `<span class="pn ${win ? "win" : ""}"><i class="pdot ${c}"></i>${esc(p.name)}</span> <span class="muted small">${esc(p.country)}</span>`;
   }
 
   function detail(m) {
@@ -104,9 +104,9 @@ export function renderTennis(el, h, view) {
       return `<h3 class="sub">${esc(ev)}<small>${dayLabel(d)} · ${SURF[m0.surface]} · best of ${m0.best_of}</small></h3>
         <div class="matchups">${ms.map(m => { const fav1 = m.p >= .5;
           return `<div class="matchup tmatch click ${T.sel === m.match_id ? "on" : ""}" data-m="${esc(m.match_id)}">
-            <div class="mrow"><span>${nameCell(m.p1, fav1)}</span><span class="muted small">${esc(m.round)}${m.start ? " · " + tipTime(m.start) : ""}${m.state === "in" ? ` · <i class="livedot"></i>live` : ""}</span><span>${nameCell(m.p2, !fav1)}</span></div>
+            <div class="mrow"><span>${nameCell(m.p1, fav1, "c1")}</span><span class="muted small">${esc(m.round)}${m.start ? " · " + tipTime(m.start) : ""}${m.state === "in" ? ` · <i class="livedot"></i>live` : ""}</span><span>${nameCell(m.p2, !fav1, "c2")}</span></div>
             <div class="tscore" data-tm="${esc(m.match_id)}"></div>
-            <div class="wbar"><i style="width:${m.p * 100}%;background:var(--ink)"></i><i style="width:${(1 - m.p) * 100}%;background:var(--muted)"></i></div>
+            <div class="wbar"><i class="c1" style="width:${m.p * 100}%"></i><i class="c2" style="width:${(1 - m.p) * 100}%"></i></div>
             <div class="mrow small"><span class="${fav1 ? "win" : ""}">${pct(m.p)} · ${fairOdds(m.p)}</span><span class="muted">Elo ${m.p1.elo} – ${m.p2.elo}</span><span class="${!fav1 ? "win" : ""}">${fairOdds(1 - m.p)} · ${pct(1 - m.p)}</span></div>
             ${T.sel === m.match_id ? detail(m) : ""}
           </div>`; }).join("")}</div>`;
