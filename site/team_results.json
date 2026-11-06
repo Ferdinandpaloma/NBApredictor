@@ -1,19 +1,19 @@
 {
-  "built_at": "2026-11-05T23:00:07Z",
+  "built_at": "2026-11-06T17:00:14Z",
   "season": "2026-27",
   "record": {
-    "n": 121,
-    "correct": 78,
-    "hit": 0.6446,
-    "avg_p": 0.6656,
+    "n": 123,
+    "correct": 80,
+    "hit": 0.6504,
+    "avg_p": 0.6637,
     "by_conf": [
       {
         "lo": 0.5,
         "hi": 0.6,
-        "n": 39,
-        "correct": 23,
-        "hit": 0.5897,
-        "avg_p": 0.5466
+        "n": 41,
+        "correct": 25,
+        "hit": 0.6098,
+        "avg_p": 0.5467
       },
       {
         "lo": 0.6,
@@ -42,6 +42,34 @@
     ]
   },
   "games": [
+    {
+      "game_id": "0022600188",
+      "date": "2026-11-05",
+      "season": "2026-27",
+      "home": "GSW",
+      "away": "MIA",
+      "home_pts": 120,
+      "away_pts": 100,
+      "home_spread": -1.7,
+      "pick": "GSW",
+      "p": 0.5679,
+      "winner": "GSW",
+      "correct": true
+    },
+    {
+      "game_id": "0022600187",
+      "date": "2026-11-05",
+      "season": "2026-27",
+      "home": "PHX",
+      "away": "ORL",
+      "home_pts": 117,
+      "away_pts": 104,
+      "home_spread": -0.7,
+      "pick": "PHX",
+      "p": 0.5278,
+      "winner": "PHX",
+      "correct": true
+    },
     {
       "game_id": "0022600186",
       "date": "2026-11-04",
