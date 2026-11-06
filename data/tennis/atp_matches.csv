@@ -51808,3 +51808,6 @@ match_id,date,tour,event_id,event,round,best_of,status,winner_id,winner,winner_c
 186499,2026-11-05,atp,13-2026,Rolex Paris Masters,Round 3,5,final,8814,Luca Van Assche,France,3764,Lorenzo Musetti,Italy,7 3 6,5 6 4,  ,  
 186502,2026-11-05,atp,13-2026,Rolex Paris Masters,Round 3,5,walkover,3782,Carlos Alcaraz,Spain,2622,Matteo Berrettini,Italy,,,,
 186503,2026-11-05,atp,13-2026,Rolex Paris Masters,Round 3,5,final,2946,Taylor Fritz,USA,10052,Arthur Fils,France,6 6,3 4, , 
+186492,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,3782,Carlos Alcaraz,Spain,2946,Taylor Fritz,USA,6 7 6,7 5 3,10  ,12  
+186500,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,9250,Ben Shelton,USA,2964,Tommy Paul,USA,6 4 6,4 6 3,  ,  
+186501,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,8814,Luca Van Assche,France,3716,Rinky Hijikata,Australia,6 6 7,4 7 5, 4 , 7 
