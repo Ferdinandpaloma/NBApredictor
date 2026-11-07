@@ -1,47 +1,173 @@
 {
-  "built_at": "2026-11-06T23:01:10Z",
+  "built_at": "2026-11-07T17:00:23Z",
   "season": "2026-27",
   "record": {
-    "n": 123,
-    "correct": 80,
-    "hit": 0.6504,
-    "avg_p": 0.6637,
+    "n": 132,
+    "correct": 89,
+    "hit": 0.6742,
+    "avg_p": 0.6656,
     "by_conf": [
       {
         "lo": 0.5,
         "hi": 0.6,
-        "n": 41,
-        "correct": 25,
-        "hit": 0.6098,
-        "avg_p": 0.5467
+        "n": 43,
+        "correct": 27,
+        "hit": 0.6279,
+        "avg_p": 0.5478
       },
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 39,
-        "correct": 21,
-        "hit": 0.5385,
-        "avg_p": 0.6495
+        "n": 42,
+        "correct": 24,
+        "hit": 0.5714,
+        "avg_p": 0.6502
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 27,
-        "correct": 18,
-        "hit": 0.6667,
-        "avg_p": 0.752
+        "n": 30,
+        "correct": 21,
+        "hit": 0.7,
+        "avg_p": 0.7526
       },
       {
         "lo": 0.8,
         "hi": 1.0,
-        "n": 16,
-        "correct": 16,
+        "n": 17,
+        "correct": 17,
         "hit": 1.0,
-        "avg_p": 0.8491
+        "avg_p": 0.848
       }
     ]
   },
   "games": [
+    {
+      "game_id": "0022600033",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "SAC",
+      "away": "SAS",
+      "home_pts": 109,
+      "away_pts": 124,
+      "home_spread": 9.8,
+      "pick": "SAS",
+      "p": 0.8292,
+      "winner": "SAS",
+      "correct": true
+    },
+    {
+      "game_id": "0022600032",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "LAL",
+      "away": "POR",
+      "home_pts": 124,
+      "away_pts": 118,
+      "home_spread": -2.5,
+      "pick": "LAL",
+      "p": 0.5983,
+      "winner": "LAL",
+      "correct": true
+    },
+    {
+      "game_id": "0022600031",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "NOP",
+      "away": "MIN",
+      "home_pts": 109,
+      "away_pts": 115,
+      "home_spread": 4.3,
+      "pick": "MIN",
+      "p": 0.6683,
+      "winner": "MIN",
+      "correct": true
+    },
+    {
+      "game_id": "0022600030",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "MIL",
+      "away": "TOR",
+      "home_pts": 107,
+      "away_pts": 121,
+      "home_spread": 5.2,
+      "pick": "TOR",
+      "p": 0.6985,
+      "winner": "TOR",
+      "correct": true
+    },
+    {
+      "game_id": "0022600029",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "MEM",
+      "away": "OKC",
+      "home_pts": 97,
+      "away_pts": 128,
+      "home_spread": 7.2,
+      "pick": "OKC",
+      "p": 0.7613,
+      "winner": "OKC",
+      "correct": true
+    },
+    {
+      "game_id": "0022600028",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "DAL",
+      "away": "UTA",
+      "home_pts": 112,
+      "away_pts": 100,
+      "home_spread": -5.7,
+      "pick": "DAL",
+      "p": 0.7137,
+      "winner": "DAL",
+      "correct": true
+    },
+    {
+      "game_id": "0022600027",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "CLE",
+      "away": "PHI",
+      "home_pts": 119,
+      "away_pts": 95,
+      "home_spread": -1.1,
+      "pick": "CLE",
+      "p": 0.5441,
+      "winner": "CLE",
+      "correct": true
+    },
+    {
+      "game_id": "0022600026",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "CHA",
+      "away": "BOS",
+      "home_pts": 80,
+      "away_pts": 119,
+      "home_spread": 2.8,
+      "pick": "BOS",
+      "p": 0.6122,
+      "winner": "BOS",
+      "correct": true
+    },
+    {
+      "game_id": "0022600025",
+      "date": "2026-11-06",
+      "season": "2026-27",
+      "home": "ATL",
+      "away": "WAS",
+      "home_pts": 139,
+      "away_pts": 132,
+      "home_spread": -8.5,
+      "pick": "ATL",
+      "p": 0.7984,
+      "winner": "ATL",
+      "correct": true
+    },
     {
       "game_id": "0022600188",
       "date": "2026-11-05",

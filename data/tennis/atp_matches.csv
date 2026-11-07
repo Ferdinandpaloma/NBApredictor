@@ -51809,5 +51809,15 @@ match_id,date,tour,event_id,event,round,best_of,status,winner_id,winner,winner_c
 186502,2026-11-05,atp,13-2026,Rolex Paris Masters,Round 3,5,walkover,3782,Carlos Alcaraz,Spain,2622,Matteo Berrettini,Italy,,,,
 186503,2026-11-05,atp,13-2026,Rolex Paris Masters,Round 3,5,final,2946,Taylor Fritz,USA,10052,Arthur Fils,France,6 6,3 4, , 
 186492,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,3782,Carlos Alcaraz,Spain,2946,Taylor Fritz,USA,6 7 6,7 5 3,10  ,12  
+186493,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,2989,Casper Ruud,Norway,4115,Nuno Borges,Portugal,7 6,6 4,7 ,5 
 186500,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,9250,Ben Shelton,USA,2964,Tommy Paul,USA,6 4 6,4 6 3,  ,  
 186501,2026-11-06,atp,13-2026,Rolex Paris Masters,Quarterfinal,5,final,8814,Luca Van Assche,France,3716,Rinky Hijikata,Australia,6 6 7,4 7 5, 4 , 7 
+186504,2026-11-07,atp,13-2026,Rolex Paris Masters,Semifinal,5,final,9250,Ben Shelton,USA,8814,Luca Van Assche,France,5 6 6,7 3 4,  ,  
+187446,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,9215,Inaki Montes-De La Torre,Spain,1842,Damir Dzumhur,Bosnia and Herzegovina,7 6,5 3, , 
+187447,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,3052,Lorenzo Sonego,Italy,16687,Olle Wallin,Sweden,6 7,4 6, 8, 6
+187448,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,11685,Jacob Fearnley,Great Britain,16638,Arthur Nagel,France,6 6,0 2, , 
+187449,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,8710,Aleksandr Shevchenko,Kazakhstan,2877,Viktor Durasovic,Norway,6 6,1 1, , 
+187450,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,1266,Adrian Mannarino,France,19358,Jan Simonsson,Sweden,6 6,4 1, , 
+187451,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,10645,Toby Samuel,Great Britain,10946,Karl Friberg,Sweden,7 6,6 2,7 ,5 
+187452,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,2498,Nikoloz Basilashvili,Georgia,3820,Francesco Passaro,Italy,6 6,4 3, , 
+187453,2026-11-07,atp,148-2026,Bybit Stockholm Open,Qualifying 1st Round,5,final,3449,Borna Gojo,Croatia,10212,Mika Brunold,Switzerland,7 4 7,5 6 6,  9,  7
