@@ -1,16 +1,5 @@
 [
   {
-    "game_id": "0022600196",
-    "date": "2026-11-08",
-    "home": "CHI",
-    "away": "PHI",
-    "home_elo": 1357.2,
-    "away_elo": 1575.9,
-    "home_win_prob": 0.2905,
-    "away_win_prob": 0.7095,
-    "home_spread": 5.5
-  },
-  {
     "game_id": "0022600197",
     "date": "2026-11-08",
     "home": "DET",
