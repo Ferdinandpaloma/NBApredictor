@@ -1,11 +1,11 @@
 {
-  "built_at": "2026-11-11T23:05:33Z",
+  "built_at": "2026-11-12T17:03:47Z",
   "season": "2026-27",
   "backtest": {
-    "games": 9066,
-    "accuracy": 0.6492,
+    "games": 9076,
+    "accuracy": 0.6493,
     "brier": 0.2187,
-    "log_loss": 0.627,
+    "log_loss": 0.6269,
     "raw_accuracy": 0.642,
     "raw_brier": 0.223,
     "raw_log_loss": 0.6377
