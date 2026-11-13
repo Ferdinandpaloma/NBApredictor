@@ -1,47 +1,103 @@
 {
-  "built_at": "2026-11-12T23:00:06Z",
+  "built_at": "2026-11-13T17:00:15Z",
   "season": "2026-27",
   "record": {
-    "n": 170,
-    "correct": 119,
-    "hit": 0.7,
-    "avg_p": 0.6699,
+    "n": 174,
+    "correct": 123,
+    "hit": 0.7069,
+    "avg_p": 0.6704,
     "by_conf": [
       {
         "lo": 0.5,
         "hi": 0.6,
-        "n": 52,
-        "correct": 34,
-        "hit": 0.6538,
-        "avg_p": 0.5517
+        "n": 53,
+        "correct": 35,
+        "hit": 0.6604,
+        "avg_p": 0.5524
       },
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 56,
-        "correct": 34,
-        "hit": 0.6071,
-        "avg_p": 0.6486
+        "n": 57,
+        "correct": 35,
+        "hit": 0.614,
+        "avg_p": 0.6479
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 38,
-        "correct": 27,
-        "hit": 0.7105,
-        "avg_p": 0.7488
+        "n": 39,
+        "correct": 28,
+        "hit": 0.7179,
+        "avg_p": 0.7491
       },
       {
         "lo": 0.8,
         "hi": 1.0,
-        "n": 24,
-        "correct": 24,
+        "n": 25,
+        "correct": 25,
         "hit": 1.0,
-        "avg_p": 0.8506
+        "avg_p": 0.8492
       }
     ]
   },
   "games": [
+    {
+      "game_id": "0022600230",
+      "date": "2026-11-12",
+      "season": "2026-27",
+      "home": "PHX",
+      "away": "CHA",
+      "home_pts": 101,
+      "away_pts": 96,
+      "home_spread": -2.1,
+      "pick": "PHX",
+      "p": 0.5847,
+      "winner": "PHX",
+      "correct": true
+    },
+    {
+      "game_id": "0022600229",
+      "date": "2026-11-12",
+      "season": "2026-27",
+      "home": "MIN",
+      "away": "DAL",
+      "home_pts": 133,
+      "away_pts": 94,
+      "home_spread": -7.3,
+      "pick": "MIN",
+      "p": 0.7632,
+      "winner": "MIN",
+      "correct": true
+    },
+    {
+      "game_id": "0022600228",
+      "date": "2026-11-12",
+      "season": "2026-27",
+      "home": "WAS",
+      "away": "DET",
+      "home_pts": 140,
+      "away_pts": 144,
+      "home_spread": 9.2,
+      "pick": "DET",
+      "p": 0.8145,
+      "winner": "DET",
+      "correct": true
+    },
+    {
+      "game_id": "0022600227",
+      "date": "2026-11-12",
+      "season": "2026-27",
+      "home": "PHI",
+      "away": "TOR",
+      "home_pts": 123,
+      "away_pts": 112,
+      "home_spread": -2.8,
+      "pick": "PHI",
+      "p": 0.6106,
+      "winner": "PHI",
+      "correct": true
+    },
     {
       "game_id": "0022600226",
       "date": "2026-11-11",
