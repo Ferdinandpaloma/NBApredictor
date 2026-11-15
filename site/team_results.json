@@ -1,11 +1,11 @@
 {
-  "built_at": "2026-11-15T17:04:53Z",
+  "built_at": "2026-11-15T23:00:01Z",
   "season": "2026-27",
   "record": {
-    "n": 188,
-    "correct": 131,
-    "hit": 0.6968,
-    "avg_p": 0.6737,
+    "n": 189,
+    "correct": 132,
+    "hit": 0.6984,
+    "avg_p": 0.6743,
     "by_conf": [
       {
         "lo": 0.5,
@@ -26,10 +26,10 @@
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 44,
-        "correct": 33,
-        "hit": 0.75,
-        "avg_p": 0.7491
+        "n": 45,
+        "correct": 34,
+        "hit": 0.7556,
+        "avg_p": 0.7497
       },
       {
         "lo": 0.8,
@@ -42,6 +42,20 @@
     ]
   },
   "games": [
+    {
+      "game_id": "0022600236",
+      "date": "2026-11-15",
+      "season": "2026-27",
+      "home": "PHI",
+      "away": "IND",
+      "home_pts": 131,
+      "away_pts": 124,
+      "home_spread": -7.7,
+      "pick": "PHI",
+      "p": 0.7768,
+      "winner": "PHI",
+      "correct": true
+    },
     {
       "game_id": "0022600235",
       "date": "2026-11-14",
