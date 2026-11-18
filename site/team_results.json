@@ -1,11 +1,11 @@
 {
-  "built_at": "2026-11-17T23:05:51Z",
+  "built_at": "2026-11-18T17:00:16Z",
   "season": "2026-27",
   "record": {
-    "n": 205,
-    "correct": 144,
-    "hit": 0.7024,
-    "avg_p": 0.6764,
+    "n": 210,
+    "correct": 147,
+    "hit": 0.7,
+    "avg_p": 0.6769,
     "by_conf": [
       {
         "lo": 0.5,
@@ -18,18 +18,18 @@
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 66,
-        "correct": 39,
-        "hit": 0.5909,
+        "n": 69,
+        "correct": 41,
+        "hit": 0.5942,
         "avg_p": 0.6489
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 50,
-        "correct": 38,
-        "hit": 0.76,
-        "avg_p": 0.7497
+        "n": 52,
+        "correct": 39,
+        "hit": 0.75,
+        "avg_p": 0.7504
       },
       {
         "lo": 0.8,
@@ -42,6 +42,76 @@
     ]
   },
   "games": [
+    {
+      "game_id": "0022600257",
+      "date": "2026-11-17",
+      "season": "2026-27",
+      "home": "LAC",
+      "away": "UTA",
+      "home_pts": 107,
+      "away_pts": 132,
+      "home_spread": -8.1,
+      "pick": "LAC",
+      "p": 0.7863,
+      "winner": "UTA",
+      "correct": false
+    },
+    {
+      "game_id": "0022600256",
+      "date": "2026-11-17",
+      "season": "2026-27",
+      "home": "LAL",
+      "away": "CHA",
+      "home_pts": 118,
+      "away_pts": 114,
+      "home_spread": -6.9,
+      "pick": "LAL",
+      "p": 0.7512,
+      "winner": "LAL",
+      "correct": true
+    },
+    {
+      "game_id": "0022600255",
+      "date": "2026-11-17",
+      "season": "2026-27",
+      "home": "SAS",
+      "away": "DET",
+      "home_pts": 93,
+      "away_pts": 105,
+      "home_spread": -4.8,
+      "pick": "SAS",
+      "p": 0.6837,
+      "winner": "DET",
+      "correct": false
+    },
+    {
+      "game_id": "0022600254",
+      "date": "2026-11-17",
+      "season": "2026-27",
+      "home": "MIN",
+      "away": "POR",
+      "home_pts": 106,
+      "away_pts": 105,
+      "home_spread": -2.6,
+      "pick": "MIN",
+      "p": 0.6017,
+      "winner": "MIN",
+      "correct": true
+    },
+    {
+      "game_id": "0022600253",
+      "date": "2026-11-17",
+      "season": "2026-27",
+      "home": "TOR",
+      "away": "NYK",
+      "home_pts": 102,
+      "away_pts": 111,
+      "home_spread": 4.2,
+      "pick": "NYK",
+      "p": 0.6635,
+      "winner": "NYK",
+      "correct": true
+    },
     {
       "game_id": "0022600252",
       "date": "2026-11-16",
