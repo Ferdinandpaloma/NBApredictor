@@ -51868,3 +51868,4 @@ match_id,date,tour,event_id,event,round,best_of,status,winner_id,winner,winner_c
 187513,2026-11-20,atp,339-2026,Nitto ATP Finals,Group Stage,5,final,2383,Daniil Medvedev,Russia,2708,Frances Tiafoe,USA,6 6,3 4, , 
 187527,2026-11-21,atp,339-2026,Nitto ATP Finals,Semifinal,5,final,2375,Alexander Zverev,Germany,2383,Daniil Medvedev,Russia,7 6,6 4,7 ,0 
 187528,2026-11-21,atp,339-2026,Nitto ATP Finals,Semifinal,5,final,3782,Carlos Alcaraz,Spain,9250,Ben Shelton,USA,3 6 7,6 3 6,  7,  1
+187529,2026-11-22,atp,339-2026,Nitto ATP Finals,Final,5,final,3782,Carlos Alcaraz,Spain,2375,Alexander Zverev,Germany,6 7,2 6, 9, 7

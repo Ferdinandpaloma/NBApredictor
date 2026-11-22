@@ -1,16 +1,5 @@
 [
   {
-    "game_id": "0022600280",
-    "date": "2026-11-22",
-    "home": "ATL",
-    "away": "DET",
-    "home_elo": 1554.2,
-    "away_elo": 1647.5,
-    "home_win_prob": 0.4389,
-    "away_win_prob": 0.5611,
-    "home_spread": 1.5
-  },
-  {
     "game_id": "0022600281",
     "date": "2026-11-22",
     "home": "MIA",
@@ -192,10 +181,10 @@
     "home": "ORL",
     "away": "DET",
     "home_elo": 1526.7,
-    "away_elo": 1647.5,
-    "home_win_prob": 0.4042,
-    "away_win_prob": 0.5958,
-    "home_spread": 2.4
+    "away_elo": 1637.4,
+    "home_win_prob": 0.4169,
+    "away_win_prob": 0.5831,
+    "home_spread": 2.1
   },
   {
     "game_id": "0022600053",
@@ -334,11 +323,11 @@
     "date": "2026-11-27",
     "home": "DET",
     "away": "MIL",
-    "home_elo": 1647.5,
+    "home_elo": 1637.4,
     "away_elo": 1301.6,
-    "home_win_prob": 0.8831,
-    "away_win_prob": 0.1169,
-    "home_spread": -12.5
+    "home_win_prob": 0.8776,
+    "away_win_prob": 0.1224,
+    "home_spread": -12.2
   },
   {
     "game_id": "0022600066",
@@ -368,10 +357,10 @@
     "home": "BOS",
     "away": "ATL",
     "home_elo": 1645.8,
-    "away_elo": 1554.2,
-    "home_win_prob": 0.6702,
-    "away_win_prob": 0.3298,
-    "home_spread": -4.4
+    "away_elo": 1564.3,
+    "home_win_prob": 0.6585,
+    "away_win_prob": 0.3415,
+    "home_spread": -4.1
   },
   {
     "game_id": "0022600069",
@@ -543,11 +532,11 @@
     "date": "2026-11-29",
     "home": "DET",
     "away": "ORL",
-    "home_elo": 1647.5,
+    "home_elo": 1637.4,
     "away_elo": 1526.7,
-    "home_win_prob": 0.7027,
-    "away_win_prob": 0.2973,
-    "home_spread": -5.3
+    "home_win_prob": 0.6916,
+    "away_win_prob": 0.3084,
+    "home_spread": -5.0
   },
   {
     "game_id": "0022600307",
@@ -555,10 +544,10 @@
     "home": "NYK",
     "away": "ATL",
     "home_elo": 1700.7,
-    "away_elo": 1554.2,
-    "home_win_prob": 0.7296,
-    "away_win_prob": 0.2704,
-    "home_spread": -6.2
+    "away_elo": 1564.3,
+    "home_win_prob": 0.7191,
+    "away_win_prob": 0.2809,
+    "home_spread": -5.8
   },
   {
     "game_id": "0022600308",

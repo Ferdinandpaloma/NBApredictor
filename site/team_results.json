@@ -1,19 +1,19 @@
 {
-  "built_at": "2026-11-22T17:00:57Z",
+  "built_at": "2026-11-22T23:01:23Z",
   "season": "2026-27",
   "record": {
-    "n": 241,
+    "n": 242,
     "correct": 167,
-    "hit": 0.6929,
-    "avg_p": 0.6807,
+    "hit": 0.6901,
+    "avg_p": 0.6802,
     "by_conf": [
       {
         "lo": 0.5,
         "hi": 0.6,
-        "n": 66,
+        "n": 67,
         "correct": 42,
-        "hit": 0.6364,
-        "avg_p": 0.5508
+        "hit": 0.6269,
+        "avg_p": 0.5509
       },
       {
         "lo": 0.6,
@@ -42,6 +42,20 @@
     ]
   },
   "games": [
+    {
+      "game_id": "0022600280",
+      "date": "2026-11-22",
+      "season": "2026-27",
+      "home": "ATL",
+      "away": "DET",
+      "home_pts": 107,
+      "away_pts": 97,
+      "home_spread": 1.5,
+      "pick": "DET",
+      "p": 0.5611,
+      "winner": "ATL",
+      "correct": false
+    },
     {
       "game_id": "0022600279",
       "date": "2026-11-21",
