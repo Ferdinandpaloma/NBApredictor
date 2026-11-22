@@ -1,47 +1,117 @@
 {
-  "built_at": "2026-11-21T23:09:10Z",
+  "built_at": "2026-11-22T17:00:57Z",
   "season": "2026-27",
   "record": {
-    "n": 236,
-    "correct": 163,
-    "hit": 0.6907,
-    "avg_p": 0.6795,
+    "n": 241,
+    "correct": 167,
+    "hit": 0.6929,
+    "avg_p": 0.6807,
     "by_conf": [
       {
         "lo": 0.5,
         "hi": 0.6,
-        "n": 65,
-        "correct": 41,
-        "hit": 0.6308,
-        "avg_p": 0.5505
+        "n": 66,
+        "correct": 42,
+        "hit": 0.6364,
+        "avg_p": 0.5508
       },
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 74,
-        "correct": 44,
-        "hit": 0.5946,
-        "avg_p": 0.6509
+        "n": 75,
+        "correct": 45,
+        "hit": 0.6,
+        "avg_p": 0.6515
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 60,
-        "correct": 44,
-        "hit": 0.7333,
-        "avg_p": 0.7508
+        "n": 61,
+        "correct": 45,
+        "hit": 0.7377,
+        "avg_p": 0.75
       },
       {
         "lo": 0.8,
         "hi": 1.0,
-        "n": 37,
-        "correct": 34,
-        "hit": 0.9189,
-        "avg_p": 0.8478
+        "n": 39,
+        "correct": 35,
+        "hit": 0.8974,
+        "avg_p": 0.8485
       }
     ]
   },
   "games": [
+    {
+      "game_id": "0022600279",
+      "date": "2026-11-21",
+      "season": "2026-27",
+      "home": "SAC",
+      "away": "BOS",
+      "home_pts": 97,
+      "away_pts": 96,
+      "home_spread": 9.8,
+      "pick": "BOS",
+      "p": 0.8297,
+      "winner": "SAC",
+      "correct": false
+    },
+    {
+      "game_id": "0022600278",
+      "date": "2026-11-21",
+      "season": "2026-27",
+      "home": "SAS",
+      "away": "NOP",
+      "home_pts": 114,
+      "away_pts": 91,
+      "home_spread": -13.2,
+      "pick": "SAS",
+      "p": 0.8938,
+      "winner": "SAS",
+      "correct": true
+    },
+    {
+      "game_id": "0022600277",
+      "date": "2026-11-21",
+      "season": "2026-27",
+      "home": "MIN",
+      "away": "MEM",
+      "home_pts": 104,
+      "away_pts": 95,
+      "home_spread": -5.1,
+      "pick": "MIN",
+      "p": 0.6958,
+      "winner": "MIN",
+      "correct": true
+    },
+    {
+      "game_id": "0022600276",
+      "date": "2026-11-21",
+      "season": "2026-27",
+      "home": "DAL",
+      "away": "LAC",
+      "home_pts": 110,
+      "away_pts": 100,
+      "home_spread": -1.7,
+      "pick": "DAL",
+      "p": 0.5688,
+      "winner": "DAL",
+      "correct": true
+    },
+    {
+      "game_id": "0022600275",
+      "date": "2026-11-21",
+      "season": "2026-27",
+      "home": "NYK",
+      "away": "POR",
+      "home_pts": 97,
+      "away_pts": 96,
+      "home_spread": -5.4,
+      "pick": "NYK",
+      "p": 0.7034,
+      "winner": "NYK",
+      "correct": true
+    },
     {
       "game_id": "0022600274",
       "date": "2026-11-21",
