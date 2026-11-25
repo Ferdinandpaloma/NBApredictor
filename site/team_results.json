@@ -1,11 +1,11 @@
 {
-  "built_at": "2026-11-24T23:17:46Z",
+  "built_at": "2026-11-25T17:06:38Z",
   "season": "2026-27",
   "record": {
-    "n": 258,
-    "correct": 175,
-    "hit": 0.6783,
-    "avg_p": 0.6821,
+    "n": 261,
+    "correct": 177,
+    "hit": 0.6782,
+    "avg_p": 0.6823,
     "by_conf": [
       {
         "lo": 0.5,
@@ -18,18 +18,18 @@
       {
         "lo": 0.6,
         "hi": 0.7,
-        "n": 80,
-        "correct": 47,
-        "hit": 0.5875,
-        "avg_p": 0.6527
+        "n": 81,
+        "correct": 48,
+        "hit": 0.5926,
+        "avg_p": 0.6522
       },
       {
         "lo": 0.7,
         "hi": 0.8,
-        "n": 64,
-        "correct": 46,
-        "hit": 0.7188,
-        "avg_p": 0.7511
+        "n": 66,
+        "correct": 47,
+        "hit": 0.7121,
+        "avg_p": 0.751
       },
       {
         "lo": 0.8,
@@ -42,6 +42,48 @@
     ]
   },
   "games": [
+    {
+      "game_id": "0022600054",
+      "date": "2026-11-24",
+      "season": "2026-27",
+      "home": "DEN",
+      "away": "DAL",
+      "home_pts": 101,
+      "away_pts": 120,
+      "home_spread": -5.6,
+      "pick": "DEN",
+      "p": 0.7114,
+      "winner": "DAL",
+      "correct": false
+    },
+    {
+      "game_id": "0022600053",
+      "date": "2026-11-24",
+      "season": "2026-27",
+      "home": "WAS",
+      "away": "BOS",
+      "home_pts": 116,
+      "away_pts": 131,
+      "home_spread": 8.0,
+      "pick": "BOS",
+      "p": 0.7848,
+      "winner": "BOS",
+      "correct": true
+    },
+    {
+      "game_id": "0022600052",
+      "date": "2026-11-24",
+      "season": "2026-27",
+      "home": "ORL",
+      "away": "DET",
+      "home_pts": 86,
+      "away_pts": 104,
+      "home_spread": 2.8,
+      "pick": "DET",
+      "p": 0.6119,
+      "winner": "DET",
+      "correct": true
+    },
     {
       "game_id": "0022600296",
       "date": "2026-11-23",
